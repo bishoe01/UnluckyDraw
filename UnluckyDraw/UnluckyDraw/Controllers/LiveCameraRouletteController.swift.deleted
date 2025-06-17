@@ -1,0 +1,573 @@
+//
+//  LiveCameraRouletteController.swift
+//  UnluckyDraw
+//
+//  Created on 2025-06-16
+//
+
+import Foundation
+import AVFoundation
+import Vision
+import UIKit
+import Combine
+
+class LiveCameraRouletteController: NSObject, ObservableObject {
+    // MARK: - Published Properties
+    @Published var detectedFaces: [DetectedFace] = []
+    @Published var currentHighlightedIndex: Int = 0
+    @Published var isSpinning = false
+    @Published var winner: DetectedFace?
+    @Published var cameraPermissionStatus: CameraPermissionStatus = .unknown
+    @Published var cameraPosition: AVCaptureDevice.Position = .back
+    
+    enum CameraPermissionStatus {
+        case unknown
+        case granted
+        case denied
+        case restricted
+    }
+    
+    // MARK: - Camera Properties
+    private var captureSession: AVCaptureSession?
+    private var videoOutput: AVCaptureVideoDataOutput?
+    private var _previewLayer: AVCaptureVideoPreviewLayer?
+    private var currentCamera: AVCaptureDevice?
+    
+    // MARK: - Face Capture Properties
+    @Published var capturedWinnerImage: UIImage?
+    private var latestCameraFrame: CVPixelBuffer?
+    
+    // MARK: - Face Detection Properties
+    private var faceDetectionRequest: VNDetectFaceRectanglesRequest?
+    private let faceDetectionQueue = DispatchQueue(label: "faceDetection", qos: .userInitiated)
+    
+    // MARK: - Roulette Properties
+    private var rouletteTimer: Timer?
+    private var spinStartTime: Date?
+    private let totalSpinDuration: Double = 4.0
+    private let initialSpeed: Double = 0.05
+    private let finalSpeed: Double = 0.3
+    
+    // MARK: - Performance Optimization
+    private var lastProcessTime: Date = Date()
+    private let processingInterval: TimeInterval = 0.1 // 10 FPS for face detection
+    
+    override init() {
+        super.init()
+        setupFaceDetection()
+    }
+    
+    // MARK: - Public Interface
+    var previewLayer: AVCaptureVideoPreviewLayer? {
+        return self._previewLayer
+    }
+    
+    func startCamera() {
+        print("📷 Starting live camera...")
+        checkCameraPermission { [weak self] granted in
+            DispatchQueue.main.async {
+                if granted {
+                    print("✅ Camera permission granted")
+                    self?.setupCamera()
+                    // setupCamera 내부에서 세션을 시작하므로 여기서는 호출하지 않음
+                } else {
+                    print("❌ Camera permission denied")
+                    // 권한이 거부된 경우 사용자에게 알림
+                }
+            }
+        }
+    }
+    
+    func stopCamera() {
+        print("📷 Stopping live camera...")
+        captureSession?.stopRunning()
+        stopRoulette()
+    }
+    
+    func toggleCamera() {
+        print("📷 Toggling camera from \(cameraPosition) to \(cameraPosition == .back ? "front" : "back")")
+        
+        // 룰렛이 돌아가는 중이면 중지
+        if isSpinning {
+            stopRoulette()
+        }
+        
+        // 얼굴 감지 초기화
+        detectedFaces.removeAll()
+        winner = nil
+        
+        // 카메라 위치 변경
+        cameraPosition = cameraPosition == .back ? .front : .back
+        
+        // 안전한 카메라 재설정
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.setupCamera()
+        }
+    }
+    
+    func startRoulette() {
+        guard detectedFaces.count >= 2 else {
+            print("❌ Cannot start roulette: need at least 2 faces")
+            return
+        }
+        
+        print("🎰 Starting live camera roulette with \(detectedFaces.count) faces")
+        
+        isSpinning = true
+        winner = nil
+        currentHighlightedIndex = 0
+        spinStartTime = Date()
+        
+        // 시작 사운드
+        SoundManager.shared.playStartSound()
+        
+        // 룰렛 타이머 시작
+        startRouletteAnimation()
+        
+        // 자동 종료 타이머
+        DispatchQueue.main.asyncAfter(deadline: .now() + totalSpinDuration) { [weak self] in
+            self?.stopRoulette()
+        }
+    }
+    
+    func stopRoulette() {
+        print("🎰 Stopping roulette")
+        
+        isSpinning = false
+        rouletteTimer?.invalidate()
+        rouletteTimer = nil
+        
+        // 당첨자 결정
+        if !detectedFaces.isEmpty {
+            var winnerFace = detectedFaces[currentHighlightedIndex]
+            winnerFace.isWinner = true
+            self.winner = winnerFace
+            
+            // 당첨 사운드
+            SoundManager.shared.playWinSound()
+            
+            // 햅틱 피드백
+            let notificationFeedback = UINotificationFeedbackGenerator()
+            notificationFeedback.notificationOccurred(.success)
+            
+            print("🏆 Winner selected: Face \(currentHighlightedIndex + 1)")
+            
+            // 당첨자 얼굴 즉시 캡처
+            self.captureWinnerFace()
+            
+            // 당첨자 선정 후 얼굴 추적 중단 (깨끗한 UI를 위해)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                // 당첨자만 남기고 나머지 얼굴 숨김
+                self.detectedFaces = [winnerFace]
+            }
+        }
+    }
+    
+    func reset() {
+        print("🔄 Resetting roulette")
+        stopRoulette()
+        winner = nil
+        capturedWinnerImage = nil
+        currentHighlightedIndex = 0
+    }
+    
+    // MARK: - Private Methods
+    
+    private func checkCameraPermission(completion: @escaping (Bool) -> Void) {
+        let status = AVCaptureDevice.authorizationStatus(for: .video)
+        print("📷 Current camera permission status: \(status.rawValue)")
+        
+        switch status {
+        case .authorized:
+            DispatchQueue.main.async {
+                self.cameraPermissionStatus = .granted
+            }
+            completion(true)
+        case .notDetermined:
+            DispatchQueue.main.async {
+                self.cameraPermissionStatus = .unknown
+            }
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                DispatchQueue.main.async {
+                    self?.cameraPermissionStatus = granted ? .granted : .denied
+                    completion(granted)
+                }
+            }
+        case .denied:
+            DispatchQueue.main.async {
+                self.cameraPermissionStatus = .denied
+            }
+            completion(false)
+        case .restricted:
+            DispatchQueue.main.async {
+                self.cameraPermissionStatus = .restricted
+            }
+            completion(false)
+        @unknown default:
+            DispatchQueue.main.async {
+                self.cameraPermissionStatus = .denied
+            }
+            completion(false)
+        }
+    }
+    
+    private func setupCamera() {
+        // 기존 세션 안전하게 정리
+        if let existingSession = captureSession {
+            existingSession.stopRunning()
+            print("⚙️ Stopped existing session")
+        }
+        
+        // 새 캡처 세션 생성
+        let newSession = AVCaptureSession()
+        
+        // 세션 구성 시작
+        newSession.beginConfiguration()
+        
+        // 기존 입력/출력 제거
+        for input in newSession.inputs {
+            newSession.removeInput(input)
+        }
+        for output in newSession.outputs {
+            newSession.removeOutput(output)
+        }
+        
+        // 세션 품질 설정 (성능과 품질의 균형)
+        if newSession.canSetSessionPreset(.high) {
+            newSession.sessionPreset = .high
+        } else if newSession.canSetSessionPreset(.medium) {
+            newSession.sessionPreset = .medium
+        }
+        
+        guard let camera = getCamera(for: cameraPosition) else {
+            print("❌ Cannot find camera for position: \(cameraPosition)")
+            newSession.commitConfiguration()
+            return
+        }
+        
+        do {
+            // 카메라 입력 설정
+            let cameraInput = try AVCaptureDeviceInput(device: camera)
+            
+            if newSession.canAddInput(cameraInput) {
+                newSession.addInput(cameraInput)
+                currentCamera = camera
+                print("✅ Camera input added: \(camera.localizedName)")
+            } else {
+                print("❌ Cannot add camera input")
+                newSession.commitConfiguration()
+                return
+            }
+            
+            // 비디오 출력 설정
+            let videoOutput = AVCaptureVideoDataOutput()
+            videoOutput.setSampleBufferDelegate(self, queue: faceDetectionQueue)
+            
+            // 픽셀 포맷 설정 (Face Detection에 최적화)
+            videoOutput.videoSettings = [
+                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
+            ]
+            
+            // 프레임 드롭 방지 (성능 최적화)
+            videoOutput.alwaysDiscardsLateVideoFrames = true
+            
+            if newSession.canAddOutput(videoOutput) {
+                newSession.addOutput(videoOutput)
+                self.videoOutput = videoOutput
+                print("✅ Video output configured")
+            } else {
+                print("❌ Cannot add video output")
+                newSession.commitConfiguration()
+                return
+            }
+            
+            // 세션 구성 완료
+            newSession.commitConfiguration()
+            
+            // 프리뷰 레이어 설정
+            let newPreviewLayer = AVCaptureVideoPreviewLayer(session: newSession)
+            newPreviewLayer.videoGravity = .resizeAspectFill
+            
+            DispatchQueue.main.async {
+                self.captureSession = newSession
+                self._previewLayer = newPreviewLayer
+                
+                // 세션 시작
+                DispatchQueue.global(qos: .userInitiated).async {
+                    newSession.startRunning()
+                    DispatchQueue.main.async {
+                        print("✅ Camera capture session started with \(self.cameraPosition) camera")
+                    }
+                }
+            }
+            
+            print("✅ Camera setup completed")
+            
+        } catch {
+            print("❌ Camera setup failed: \(error.localizedDescription)")
+            newSession.commitConfiguration()
+        }
+    }
+    
+    private func getCamera(for position: AVCaptureDevice.Position) -> AVCaptureDevice? {
+        if #available(iOS 10.0, *) {
+            return AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position)
+        } else {
+            return AVCaptureDevice.devices(for: .video)
+                .first { $0.position == position }
+        }
+    }
+    
+    private func startCaptureSession() {
+        guard let session = captureSession else { return }
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            session.startRunning()
+            DispatchQueue.main.async {
+                print("✅ Camera capture session started")
+            }
+        }
+    }
+    
+    private func setupFaceDetection() {
+        faceDetectionRequest = VNDetectFaceRectanglesRequest { [weak self] request, error in
+            self?.processFaceDetectionResults(request: request, error: error)
+        }
+        
+        // 최고 성능 설정
+        faceDetectionRequest?.revision = VNDetectFaceRectanglesRequestRevision3
+        
+        if #available(iOS 14.0, *) {
+            faceDetectionRequest?.usesCPUOnly = false // GPU 가속
+        }
+        
+        print("🤖 Live face detection configured")
+    }
+    
+    private func processFaceDetectionResults(request: VNRequest, error: Error?) {
+        // 당첨자가 있으면 새로운 얼굴 감지 중단
+        guard winner == nil else { return }
+        
+        guard error == nil,
+              let results = request.results as? [VNFaceObservation],
+              !results.isEmpty else {
+            DispatchQueue.main.async {
+                if self.winner == nil {
+                    self.detectedFaces = []
+                }
+            }
+            return
+        }
+        
+        // 고품질 얼굴만 필터링
+        let validFaces = results.compactMap { observation -> DetectedFace? in
+            let boundingBox = observation.boundingBox
+            let confidence = observation.confidence
+            
+            // 신뢰도 및 크기 검사
+            guard confidence > 0.5,
+                  boundingBox.width * boundingBox.height > 0.015,
+                  boundingBox.width / boundingBox.height > 0.5,
+                  boundingBox.width / boundingBox.height < 2.0 else {
+                return nil
+            }
+            
+            return DetectedFace(
+                boundingBox: boundingBox,
+                confidence: confidence
+            )
+        }
+        
+        DispatchQueue.main.async {
+            // 당첨자가 없을 때만 얼굴 업데이트
+            if self.winner == nil {
+                self.detectedFaces = validFaces
+                
+                // 룰렛 중이 아닐 때만 인덱스 리셋
+                if !self.isSpinning {
+                    self.currentHighlightedIndex = 0
+                }
+                
+                // 얼굴이 사라지면 룰렛 중지
+                if validFaces.isEmpty && self.isSpinning {
+                    self.stopRoulette()
+                }
+            }
+        }
+    }
+    
+    private func startRouletteAnimation() {
+        let currentSpeed = calculateCurrentSpeed()
+        
+        rouletteTimer = Timer.scheduledTimer(withTimeInterval: currentSpeed, repeats: false) { [weak self] _ in
+            self?.updateRouletteHighlight()
+        }
+    }
+    
+    private func updateRouletteHighlight() {
+        guard !detectedFaces.isEmpty, isSpinning else { return }
+        
+        // 다음 얼굴로 이동
+        currentHighlightedIndex = (currentHighlightedIndex + 1) % detectedFaces.count
+        
+        // 사운드 및 햅틱
+        SoundManager.shared.playSpinSound()
+        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+        impactFeedback.impactOccurred()
+        
+        // 계속 스피닝 중이면 다음 타이머 설정
+        if isSpinning {
+            startRouletteAnimation()
+        }
+    }
+    
+    private func calculateCurrentSpeed() -> Double {
+        guard let startTime = spinStartTime else { return initialSpeed }
+        
+        let elapsedTime = Date().timeIntervalSince(startTime)
+        let progress = min(elapsedTime / totalSpinDuration, 1.0)
+        
+        // Ease-out 효과로 점진적 감속
+        let easeOutProgress = 1 - pow(1 - progress, 3)
+        return initialSpeed + (finalSpeed - initialSpeed) * easeOutProgress
+    }
+    
+    // MARK: - Face Capture Methods
+    
+    func captureWinnerFace() {
+        guard let winner = self.winner,
+              let pixelBuffer = latestCameraFrame else {
+            print("❌ Cannot capture winner face: missing data")
+            return
+        }
+        
+        // 카메라 프레임에서 얼굴 영역 추출
+        DispatchQueue.global(qos: .userInitiated).async {
+            if let faceImage = self.extractFaceFromFrame(pixelBuffer: pixelBuffer, face: winner) {
+                DispatchQueue.main.async {
+                    self.capturedWinnerImage = faceImage
+                    print("✅ Winner face captured successfully")
+                }
+            } else {
+                print("❌ Failed to extract winner face from frame")
+            }
+        }
+    }
+    
+    private func extractFaceFromFrame(pixelBuffer: CVPixelBuffer, face: DetectedFace) -> UIImage? {
+        // CVPixelBuffer를 UIImage로 변환
+        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+        let context = CIContext()
+        
+        // 이미지 크기 가져오기
+        let imageSize = ciImage.extent.size
+        
+        // 얼굴 영역을 이미지 좌표로 변환
+        var faceRect = face.boundingBox
+        
+        // Vision 좌표를 이미지 좌표로 변환 (Y축 반전)
+        faceRect.origin.y = 1.0 - faceRect.origin.y - faceRect.size.height
+        
+        // 전면 카메라인 경우 X축 미러링
+        if cameraPosition == .front {
+            faceRect.origin.x = 1.0 - faceRect.origin.x - faceRect.size.width
+        }
+        
+        // 이미지 크기에 맞게 스케일링
+        let scaledRect = CGRect(
+            x: faceRect.origin.x * imageSize.width,
+            y: faceRect.origin.y * imageSize.height,
+            width: faceRect.size.width * imageSize.width,
+            height: faceRect.size.height * imageSize.height
+        )
+        
+        // 얼굴 영역을 약간 확대 (더 많은 컨텍스트 포함)
+        let padding = min(scaledRect.width, scaledRect.height) * 0.2
+        let expandedRect = CGRect(
+            x: max(0, scaledRect.origin.x - padding),
+            y: max(0, scaledRect.origin.y - padding),
+            width: min(imageSize.width - max(0, scaledRect.origin.x - padding), scaledRect.width + padding * 2),
+            height: min(imageSize.height - max(0, scaledRect.origin.y - padding), scaledRect.height + padding * 2)
+        )
+        
+        // 얼굴 영역 자르기
+        let croppedCIImage = ciImage.cropped(to: expandedRect)
+        
+        // CGImage로 변환
+        guard let cgImage = context.createCGImage(croppedCIImage, from: croppedCIImage.extent) else {
+            return nil
+        }
+        
+        // UIImage로 변환 (방향 올바로 설정)
+        let uiImage = UIImage(cgImage: cgImage, scale: 1.0, orientation: getUIImageOrientation())
+        
+        return uiImage
+    }
+    
+    private func getUIImageOrientation() -> UIImage.Orientation {
+        switch cameraPosition {
+        case .front:
+            return .leftMirrored
+        case .back:
+            return .right
+        default:
+            return .right
+        }
+    }
+    
+    deinit {
+        stopCamera()
+    }
+}
+
+// MARK: - AVCaptureVideoDataOutputSampleBufferDelegate
+extension LiveCameraRouletteController: AVCaptureVideoDataOutputSampleBufferDelegate {
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        
+        // 성능 최적화: 일정 간격으로만 처리
+        let now = Date()
+        guard now.timeIntervalSince(lastProcessTime) >= processingInterval else { return }
+        lastProcessTime = now
+        
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer),
+              let request = faceDetectionRequest else { return }
+        
+        // 최신 프레임 저장 (당첨자 얼굴 캡처용)
+        latestCameraFrame = pixelBuffer
+        
+        // 카메라 방향에 따른 이미지 방향 설정
+        let imageOrientation: CGImagePropertyOrientation
+        switch cameraPosition {
+        case .front:
+            // 전면 카메라: 미러링 처리
+            imageOrientation = .leftMirrored
+        case .back:
+            // 후면 카메라: 일반 방향
+            imageOrientation = .right
+        default:
+            imageOrientation = .right
+        }
+        
+        // 비디오 연결 방향 설정
+        if connection.isVideoOrientationSupported {
+            connection.videoOrientation = .portrait
+        }
+        
+        // 전면 카메라일 때 미러링 설정
+        if cameraPosition == .front && connection.isVideoMirroringSupported {
+            connection.isVideoMirrored = true
+        }
+        
+        let imageRequestHandler = VNImageRequestHandler(
+            cvPixelBuffer: pixelBuffer,
+            orientation: imageOrientation,
+            options: [:]
+        )
+        
+        do {
+            try imageRequestHandler.perform([request])
+        } catch {
+            print("❌ Face detection failed: \(error)")
+        }
+    }
+}
