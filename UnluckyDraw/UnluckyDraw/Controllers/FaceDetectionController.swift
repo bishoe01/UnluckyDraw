@@ -97,6 +97,11 @@ class FaceDetectionController: ObservableObject {
                 // ⭐️ Vision 처리 완료 후 모든 얼굴 크롭
                 DispatchQueue.main.async {
                     self?.cropAllDetectedFaces(from: image)
+                    
+                    // 🆕 이미지 크기가 설정되어 있다면 즉시 editableFaces로 변환
+                    if self?.currentImageSize != .zero {
+                        self?.convertToEditableFaces(imageSize: self?.currentImageSize ?? .zero)
+                    }
                 }
             } catch {
                 DispatchQueue.main.async {

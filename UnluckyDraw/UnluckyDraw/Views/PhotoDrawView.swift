@@ -19,8 +19,7 @@ struct PhotoDrawView: View {
     enum PhotoDrawStep {
         case instruction
         case camera
-        case faceDetection
-        case faceReview      // 🆕 얼굴 검수 단계
+        case faceReviewIntegrated  // 🆕 얼굴인식+검수 통합
         case roulette
         case result
     }
@@ -101,50 +100,24 @@ struct PhotoDrawView: View {
                             }
                         }
                         
-                    case .faceDetection:
+                    case .faceReviewIntegrated:  // 🆕 얼굴인식+검수 통합 페이지
                         if let image = cameraManager.capturedImage {
-                            FaceDetectionView(
-                                image: image,
-                                detectedFaces: faceDetectionController.detectedFaces,
-                                isProcessing: faceDetectionController.isProcessing,
-                                error: faceDetectionController.error,
-                                autoStart: false  // 🆕 자동 시작 비활성화
-                            ) {
-                                proceedToFaceReview()  // 🆕 검수 단계로 이동
-                            }
-                            .onAppear {
-                                print("🔍 Starting face detection immediately")
-                                faceDetectionController.detectFaces(in: image)
-                            }
-                        } else {
-                            // 이미지가 없으면 즉시 카메라로 복귀
-                            VStack {
-                                ProgressView("Loading image...")
-                                    .padding()
-                                Text("Please wait...")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-                            .onAppear {
-                                print("⚠️ No image found, returning to camera")
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                    currentStep = .camera
-                                }
-                            }
-                        }
-                        
-                    case .faceReview:  // 🆕 새로운 검수 단계
-                        if let image = cameraManager.capturedImage {
-                            FaceReviewView(
+                            FaceReviewIntegratedView(
                                 image: image,
                                 faceDetectionController: faceDetectionController,
                                 onNext: {
                                     proceedToRoulette()
                                 },
                                 onBack: {
-                                    currentStep = .faceDetection
+                                    currentStep = .camera
                                 }
                             )
+                            .onAppear {
+                                print("🔍 Starting integrated face detection and review")
+                                if faceDetectionController.detectedFaces.isEmpty {
+                                    faceDetectionController.detectFaces(in: image)
+                                }
+                            }
                         }
                         
                     case .roulette:
@@ -186,10 +159,10 @@ struct PhotoDrawView: View {
         .onChange(of: cameraManager.capturedImage) { _, newImage in
             print("📷 Image capture detected: \(newImage != nil ? "SUCCESS" : "FAILED")")
             if newImage != nil {
-                print("🔄 Transitioning to face detection immediately")
-                // 즉시 전환
+                print("🔄 Transitioning to integrated face review immediately")
+                // 사진 촬영 후 바로 통합 페이지로 이동
                 withAnimation(.easeInOut(duration: 0.3)) {
-                    currentStep = .faceDetection
+                    currentStep = .faceReviewIntegrated
                 }
             }
         }
@@ -209,15 +182,13 @@ struct PhotoDrawView: View {
     private var stepDescription: String {
         switch currentStep {
         case .instruction:
-            return "1/5"
+            return "1/4"
         case .camera:
-            return "2/5"
-        case .faceDetection:
-            return "3/5"
-        case .faceReview:
-            return "4/5"  // 🆕 새로운 단계
+            return "2/4"
+        case .faceReviewIntegrated:
+            return "3/4"  // 🆕 통합된 단계
         case .roulette:
-            return "5/5"
+            return "4/4"
         case .result:
             return ""
         }
@@ -228,17 +199,8 @@ struct PhotoDrawView: View {
         currentStep = .camera
     }
     
-    private func proceedToFaceReview() {
-        guard !faceDetectionController.detectedFaces.isEmpty else {
-            print("⚠️ Cannot proceed to face review: no faces detected")
-            return
-        }
-        print("🔍 Proceeding to face review with \(faceDetectionController.detectedFaces.count) faces")
-        currentStep = .faceReview
-    }
-    
     private func proceedToRoulette() {
-        // 🆕 이제 editableFaces를 사용하여 룰렛 시작
+        // 🆕 통합 페이지에서 바로 룰렛으로
         let finalFaces = faceDetectionController.getEditedFacesAsDetected()
         guard !finalFaces.isEmpty else {
             print("⚠️ Cannot proceed to roulette: no faces available")
