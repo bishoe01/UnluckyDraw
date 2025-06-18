@@ -18,15 +18,15 @@ class RouletteController: ObservableObject {
     private var spinTimer: Timer?
     private var faces: [DetectedFace] = []
     
-    // 🎲 자연스러운 2단계 룰렛 시스템
-    private let phase1Duration: Double = 1.5   // 1단계: 적당히 빠르게 시작
-    private let phase2Duration: Double = 3.0   // 2단계: 점진적 감속  
-    private let totalSpinDuration: Double = 4.5 // 전체 시간
+    // 🎲 빠른 자연스러운 룰렛 시스템
+    private let totalSpinDuration: Double = 3.0 // 전체 시간 단축
+    private let phase1Duration: Double = 1.0   // 1단계: 빠른 시작
+    private let phase2Duration: Double = 2.0   // 2단계: 감속  
     
-    // 각 단계별 속도 - 자연스럽게
-    private let phase1Speed: Double = 0.12     // 적당히 빠른 시작
-    private let phase2StartSpeed: Double = 0.12 // 감속 시작 속도
-    private let phase2EndSpeed: Double = 0.8   // 마지막에 적당히 느리게
+    // 각 단계별 속도 - 더 빠르게
+    private let phase1Speed: Double = 0.1      // 빠른 시작
+    private let phase2StartSpeed: Double = 0.1 // 감속 시작 속도
+    private let phase2EndSpeed: Double = 0.4   // 마지막 속도 (2배 빠르게)
     
     @Published var currentPhase: Int = 1
     @Published var spinStartTime: Date = Date()

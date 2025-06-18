@@ -81,9 +81,9 @@ struct RouletteView: View {
                                     .animation(.easeInOut(duration: 0.3), value: isSpinning)
                             )
                         
-                        // Face Overlays with Roulette Effect
+                        // 🎯 고정된 프레임들 - 테두리 색상만 변경
                         ForEach(Array(faces.enumerated()), id: \.element.id) { index, face in
-                            RouletteOverlay(
+                            FixedFrameOverlay(
                                 face: face,
                                 index: index,
                                 isHighlighted: index == currentHighlightedIndex,
@@ -92,11 +92,10 @@ struct RouletteView: View {
                             )
                         }
                         
-                        // 🎆 스포트라이트 효과: 선택된 얼굴만 컬러로!
+                        // 🎆 스포트라이트 효과 - 선택된 얼굴만 컬러로
                         if isSpinning {
                             ForEach(Array(faces.enumerated()), id: \.element.id) { index, face in
                                 if index == currentHighlightedIndex {
-                                    // 선택된 얼굴만 컬러로 표시
                                     SpotlightOverlay(
                                         face: face,
                                         originalImage: image,
@@ -158,7 +157,7 @@ struct RouletteView: View {
     private func getPhaseIcon() -> some View {
         switch currentPhase {
         case 1:
-            Image(systemName: "hare.fill")
+            Image(systemName: "bolt.fill")
                 .font(.title2)
                 .foregroundColor(.orange)
         case 2:
@@ -174,7 +173,7 @@ struct RouletteView: View {
     private func getPhaseMessage() -> String {
         switch currentPhase {
         case 1:
-            return "Spinning..."
+            return "Spinning fast!"
         case 2:
             return "Slowing down..."
         default:
@@ -185,7 +184,7 @@ struct RouletteView: View {
     private func getPhaseSubMessage() -> String {
         switch currentPhase {
         case 1:
-            return "Going fast!"
+            return "Spotlight moving!"
         case 2:
             return "Who will it be?!"
         default:
@@ -234,7 +233,8 @@ struct RouletteView: View {
     }
 }
 
-struct RouletteOverlay: View {
+// MARK: - 🎯 고정된 프레임 오버레이 (테두리 색상만 변경)
+struct FixedFrameOverlay: View {
     let face: DetectedFace
     let index: Int
     let isHighlighted: Bool
@@ -242,32 +242,26 @@ struct RouletteOverlay: View {
     let imageSize: CGSize
     
     var body: some View {
-        // ⭐️ 새로운 좌표 변환 시스템 사용
         let displayBox = face.displayBoundingBox(for: imageSize)
         
         ZStack {
-            // 메인 얼굴 사각형 - 룰렛 중에는 더 간단하고 임팩트 있게
+            // 고정된 얼굴 프레임 - 테두리 색상만 변경
             RoundedRectangle(cornerRadius: 12)
                 .stroke(
-                    isHighlighted ? Color.highlightYellow : Color.primaryRed.opacity(0.6),
-                    lineWidth: isHighlighted ? 6 : 3
+                    isHighlighted ? Color.highlightYellow : Color.primaryRed.opacity(0.4),
+                    lineWidth: isHighlighted ? 4 : 2
                 )
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(
-                            (isHighlighted ? Color.highlightYellow : Color.primaryRed)
-                                .opacity(isHighlighted ? 0.25 : 0.1)
-                        )
+                        .fill(Color.clear) // 배경은 투명
                 )
                 .frame(width: displayBox.width, height: displayBox.height)
                 .position(x: displayBox.midX, y: displayBox.midY)
-                .scaleEffect(isHighlighted ? 1.15 : 0.9)  // 더 큰 차이
-                .opacity(isHighlighted ? 1.0 : 0.6)      // 더 강한 대비
                 .shadow(
                     color: isHighlighted ? Color.highlightYellow.opacity(0.6) : Color.clear,
-                    radius: isHighlighted ? 12 : 0
+                    radius: isHighlighted ? 8 : 0
                 )
-                .animation(.easeInOut(duration: 0.2), value: isHighlighted)
+                .animation(.easeInOut(duration: 0.15), value: isHighlighted)
             
             // 숫자 배지 - 룰렛 중에는 숨기고, 완료 후에만 표시
             if !isSpinning {
@@ -305,31 +299,18 @@ struct SpotlightOverlay: View {
         let displayBox = face.displayBoundingBox(for: imageSize)
         
         // 선택된 얼굴 영역만 컬러로 표시
-        ZStack {
-            // 컬러 이미지를 얼굴 영역에만 표시
-            Image(uiImage: originalImage)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: imageSize.width, height: imageSize.height)
-                .mask(
-                    // 얼굴 영역만 드러나게 마스크 처리
-                    RoundedRectangle(cornerRadius: 12)
-                        .frame(width: displayBox.width, height: displayBox.height)
-                        .position(x: displayBox.midX, y: displayBox.midY)
-                )
-                .position(x: imageSize.width / 2, y: imageSize.height / 2)
-                .shadow(color: .highlightYellow.opacity(0.8), radius: 15)
-                .scaleEffect(1.02) // 살짝 크게
-                .animation(.easeInOut(duration: 0.15), value: face.id)
-                .overlay(
-                    // 스포트라이트 테두리 효과
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.highlightYellow, lineWidth: 3)
-                        .frame(width: displayBox.width, height: displayBox.height)
-                        .position(x: displayBox.midX, y: displayBox.midY)
-                        .shadow(color: .highlightYellow.opacity(0.6), radius: 8)
-                )
-        }
+        Image(uiImage: originalImage)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: imageSize.width, height: imageSize.height)
+            .mask(
+                // 얼굴 영역만 드러나게 마스크 처리
+                RoundedRectangle(cornerRadius: 12)
+                    .frame(width: displayBox.width + 4, height: displayBox.height + 4) // 살짝 크게
+                    .position(x: displayBox.midX, y: displayBox.midY)
+            )
+            .position(x: imageSize.width / 2, y: imageSize.height / 2)
+            .animation(.easeInOut(duration: 0.15), value: face.id)
     }
 }
 
