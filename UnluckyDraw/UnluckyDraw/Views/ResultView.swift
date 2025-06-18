@@ -54,10 +54,7 @@ struct ResultView: View {
                         showAnimation: showAnimation
                     )
                     
-                    // 경고 효과 추가!
-                    if showAnimation {
-                        WarningEffectView()
-                    }
+                    // 경고 효과 제거! 깔끔하게
                 }
             }
             .padding(.horizontal, 20)
@@ -196,7 +193,6 @@ struct LargeWinnerDisplay: View {
     
     @State private var scale: CGFloat = 0.8
     @State private var flashOpacity: Double = 0.0
-    @State private var warningBlink = false
     
     var body: some View {
         GeometryReader { geometry in
@@ -220,24 +216,10 @@ struct LargeWinnerDisplay: View {
                                         ),
                                         lineWidth: 6
                                     )
-                                    .opacity(warningBlink ? 1.0 : 0.5)
+                                    .opacity(1.0) // 고정된 투명도
                             )
                             .shadow(color: .unluckyRed.opacity(0.6), radius: 15)
                             .scaleEffect(scale)
-                            .overlay(
-                                // 경고 아이콘 (사진 위에)
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.system(size: 32))
-                                    .foregroundColor(.warningYellow)
-                                    .background(
-                                        Circle()
-                                            .fill(Color.unluckyRed)
-                                            .frame(width: 50, height: 50)
-                                    )
-                                    .shadow(color: .black.opacity(0.4), radius: 4)
-                                    .offset(y: -160)
-                                    .scaleEffect(warningBlink ? 1.1 : 0.9)
-                            )
                             .overlay(
                                 // 깜박임 효과
                                 RoundedRectangle(cornerRadius: 20)
@@ -325,63 +307,7 @@ struct LargeWinnerDisplay: View {
                     flashOpacity = 0.3
                 }
             }
-            
-            // 경고 깜박임 효과
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) {
-                    warningBlink = true
-                }
-            }
         }
-    }
-}
-
-// MARK: - Warning Effect View (재미있는 경고 효과!)
-
-struct WarningEffectView: View {
-    @State private var animate = false
-    
-    var body: some View {
-        ZStack {
-            ForEach(0 ..< 8) { index in
-                WarningIcon(index: index)
-                    .offset(
-                        x: animate ? CGFloat.random(in: -300...300) : 0,
-                        y: animate ? CGFloat.random(in: -200...200) : 0
-                    )
-                    .opacity(animate ? 0.0 : 1.0)
-                    .animation(
-                        .easeOut(duration: Double.random(in: 1.5...2.5))
-                            .delay(Double.random(in: 0...0.5)),
-                        value: animate
-                    )
-            }
-        }
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                animate = true
-            }
-        }
-    }
-}
-
-struct WarningIcon: View {
-    let index: Int
-    @State private var rotation: Double = 0
-    
-    private let icons = ["exclamationmark.triangle.fill", "bolt.fill", "flame.fill", "exclamationmark.circle.fill"]
-    private let colors: [Color] = [.unluckyRed, .unluckyOrange, .warningYellow, .primaryRed]
-    
-    var body: some View {
-        Image(systemName: icons[index % icons.count])
-            .font(.system(size: CGFloat.random(in: 20...40)))
-            .foregroundColor(colors[index % colors.count])
-            .rotationEffect(.degrees(rotation))
-            .onAppear {
-                withAnimation(.linear(duration: 2).repeatForever(autoreverses: false)) {
-                    rotation = 360
-                }
-            }
     }
 }
 
