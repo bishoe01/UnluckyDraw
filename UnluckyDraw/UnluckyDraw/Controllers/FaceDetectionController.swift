@@ -13,8 +13,10 @@ import AVFoundation
 
 class FaceDetectionController: ObservableObject {
     @Published var detectedFaces: [DetectedFace] = []
+    @Published var editableFaces: [EditableFace] = []  // 🆕 편집 가능한 얼굴 목록
     @Published var isProcessing = false
     @Published var error: FaceDetectionError?
+    @Published var currentImageSize: CGSize = .zero    // 🆕 현재 이미지 크기
     
     private var faceDetectionRequest: VNDetectFaceRectanglesRequest?
     
@@ -385,7 +387,154 @@ class FaceDetectionController: ObservableObject {
     
     func clearResults() {
         detectedFaces.removeAll()
+        editableFaces.removeAll()
         error = nil
         isProcessing = false
+        currentImageSize = .zero
+    }
+    
+    // MARK: - 🆕 얼굴 편집 기능
+    
+    /// 얼굴 인식 결과를 편집 가능한 얼굴로 변환
+    func convertToEditableFaces(imageSize: CGSize) {
+        currentImageSize = imageSize
+        editableFaces = detectedFaces.map { face in
+            EditableFace(from: face, imageSize: imageSize)
+        }
+        
+        print("📝 Converted \(detectedFaces.count) detected faces to editable faces")
+        print("📝 Image size: \(imageSize)")
+    }
+    
+    /// 새로운 얼굴 박스 추가 (향상된 버전)
+    func addNewFace() {
+        guard currentImageSize != .zero else {
+            print("⚠️ Cannot add face: image size not set")
+            return
+        }
+        
+        // 더 똑똑한 크기 계산
+        let smartSize = calculateSmartBoxSize()
+        let suggestedPosition = EditableFace.suggestPosition(
+            for: smartSize,
+            in: currentImageSize,
+            avoiding: editableFaces
+        )
+        
+        let newFace = EditableFace(
+            boundingBox: CGRect(
+                origin: suggestedPosition,
+                size: smartSize
+            ),
+            confidence: 1.0,
+            isUserAdded: true
+        )
+        
+        editableFaces.append(newFace)
+        
+        print("➕ Added new face box:")
+        print("  • Position: \(suggestedPosition)")
+        print("  • Size: \(smartSize)")
+        print("  • Total faces: \(editableFaces.count)")
+        
+        // 시각적 피드백을 위해 잠시 하이라이트
+        if let newIndex = editableFaces.firstIndex(where: { $0.id == newFace.id }) {
+            editableFaces[newIndex].isHighlighted = true
+            
+            // 2초 후 하이라이트 해제
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                if newIndex < self.editableFaces.count {
+                    self.editableFaces[newIndex].isHighlighted = false
+                }
+            }
+        }
+    }
+    
+    /// 똑똑한 박스 크기 계산
+    private func calculateSmartBoxSize() -> CGSize {
+        if editableFaces.isEmpty {
+            // 첫 번째 박스인 경우 이미지 크기에 비례한 기본 크기
+            let defaultRatio: CGFloat = 0.15 // 이미지의 15%
+            let size = min(currentImageSize.width, currentImageSize.height) * defaultRatio
+            return CGSize(width: size, height: size * 1.2) // 약간 세로로 긴 형태
+        }
+        
+        // 기존 박스들의 평균 크기 계산
+        let averageSize = EditableFace.averageSize(from: editableFaces)
+        
+        // 크기 범위 제한 (너무 작거나 크지 않도록)
+        let minSize: CGFloat = 60
+        let maxSize = min(currentImageSize.width, currentImageSize.height) * 0.3
+        
+        let clampedWidth = max(minSize, min(maxSize, averageSize.width))
+        let clampedHeight = max(minSize, min(maxSize, averageSize.height))
+        
+        return CGSize(width: clampedWidth, height: clampedHeight)
+    }
+    
+    /// 얼굴 박스 삭제
+    func removeFace(withId id: UUID) {
+        guard editableFaces.count > 1 else {
+            print("⚠️ Cannot remove face: minimum 1 face required")
+            return
+        }
+        
+        if let index = editableFaces.firstIndex(where: { $0.id == id }) {
+            let removedFace = editableFaces.remove(at: index)
+            print("❌ Removed face: userAdded=\(removedFace.isUserAdded)")
+            print("📊 Total faces: \(editableFaces.count)")
+        }
+    }
+    
+    /// 얼굴 박스 위치 업데이트 (향상된 버전)
+    func updateFacePosition(id: UUID, dragOffset: CGSize) {
+        if let index = editableFaces.firstIndex(where: { $0.id == id }) {
+            editableFaces[index].dragOffset = dragOffset
+            editableFaces[index].isDragging = true
+        }
+    }
+    
+    /// 드래그 완료 시 위치 적용 (향상된 버전)
+    func finalizeFacePosition(id: UUID) {
+        if let index = editableFaces.firstIndex(where: { $0.id == id }) {
+            // 기존 로직 유지하면서 추가 검증
+            editableFaces[index].applyDragOffset()
+            editableFaces[index].constrainToImage(size: currentImageSize)
+            
+            let finalBox = editableFaces[index].boundingBox
+            print("📏 Finalized face position:")
+            print("  • Box: \(finalBox)")
+            print("  • Image bounds: \(currentImageSize)")
+            print("  • Is within bounds: \(isWithinBounds(finalBox))")
+        }
+    }
+    
+    /// 박스가 이미지 경계 내에 있는지 확인
+    private func isWithinBounds(_ box: CGRect) -> Bool {
+        let imageBounds = CGRect(origin: .zero, size: currentImageSize)
+        return imageBounds.contains(box)
+    }
+    
+    /// 편집된 얼굴들을 DetectedFace 형태로 변환 (룰렛용)
+    func getEditedFacesAsDetected() -> [DetectedFace] {
+        return editableFaces.map { editableFace in
+            // 픽셀 좌표를 Vision 좌표로 역변환
+            let visionBox = CGRect(
+                x: editableFace.boundingBox.minX / currentImageSize.width,
+                y: 1.0 - (editableFace.boundingBox.maxY / currentImageSize.height),
+                width: editableFace.boundingBox.width / currentImageSize.width,
+                height: editableFace.boundingBox.height / currentImageSize.height
+            )
+            
+            var detectedFace = DetectedFace(
+                boundingBox: visionBox,
+                confidence: editableFace.confidence
+            )
+            
+            // 기존 크롭 이미지가 있으면 사용, 없으면 나중에 생성
+            detectedFace.croppedImage = editableFace.croppedImage
+            
+            return detectedFace
+        }
     }
 }

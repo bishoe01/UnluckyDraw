@@ -20,6 +20,7 @@ struct PhotoDrawView: View {
         case instruction
         case camera
         case faceDetection
+        case faceReview      // 🆕 얼굴 검수 단계
         case roulette
         case result
     }
@@ -107,9 +108,9 @@ struct PhotoDrawView: View {
                                 detectedFaces: faceDetectionController.detectedFaces,
                                 isProcessing: faceDetectionController.isProcessing,
                                 error: faceDetectionController.error,
-                                autoStart: true
+                                autoStart: false  // 🆕 자동 시작 비활성화
                             ) {
-                                proceedToRoulette()
+                                proceedToFaceReview()  // 🆕 검수 단계로 이동
                             }
                             .onAppear {
                                 print("🔍 Starting face detection immediately")
@@ -130,6 +131,20 @@ struct PhotoDrawView: View {
                                     currentStep = .camera
                                 }
                             }
+                        }
+                        
+                    case .faceReview:  // 🆕 새로운 검수 단계
+                        if let image = cameraManager.capturedImage {
+                            FaceReviewView(
+                                image: image,
+                                faceDetectionController: faceDetectionController,
+                                onNext: {
+                                    proceedToRoulette()
+                                },
+                                onBack: {
+                                    currentStep = .faceDetection
+                                }
+                            )
                         }
                         
                     case .roulette:
@@ -194,13 +209,15 @@ struct PhotoDrawView: View {
     private var stepDescription: String {
         switch currentStep {
         case .instruction:
-            return "1/4"
+            return "1/5"
         case .camera:
-            return "2/4"
+            return "2/5"
         case .faceDetection:
-            return "3/4"
+            return "3/5"
+        case .faceReview:
+            return "4/5"  // 🆕 새로운 단계
         case .roulette:
-            return "4/4"
+            return "5/5"
         case .result:
             return ""
         }
@@ -211,12 +228,26 @@ struct PhotoDrawView: View {
         currentStep = .camera
     }
     
-    private func proceedToRoulette() {
+    private func proceedToFaceReview() {
         guard !faceDetectionController.detectedFaces.isEmpty else {
-            print("⚠️ Cannot proceed to roulette: no faces detected")
+            print("⚠️ Cannot proceed to face review: no faces detected")
             return
         }
-        print("🎰 Proceeding to roulette with \(faceDetectionController.detectedFaces.count) faces")
+        print("🔍 Proceeding to face review with \(faceDetectionController.detectedFaces.count) faces")
+        currentStep = .faceReview
+    }
+    
+    private func proceedToRoulette() {
+        // 🆕 이제 editableFaces를 사용하여 룰렛 시작
+        let finalFaces = faceDetectionController.getEditedFacesAsDetected()
+        guard !finalFaces.isEmpty else {
+            print("⚠️ Cannot proceed to roulette: no faces available")
+            return
+        }
+        print("🎰 Proceeding to roulette with \(finalFaces.count) edited faces")
+        
+        // 편집된 얼굴들로 detectedFaces 업데이트
+        faceDetectionController.detectedFaces = finalFaces
         currentStep = .roulette
     }
     
