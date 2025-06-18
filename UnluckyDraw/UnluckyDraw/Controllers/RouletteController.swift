@@ -18,11 +18,18 @@ class RouletteController: ObservableObject {
     private var spinTimer: Timer?
     private var faces: [DetectedFace] = []
     
-    // 룰렛 애니메이션 설정
-    private let initialSpeed: Double = 0.05  // 시작 속도 (빠름)
-    private let finalSpeed: Double = 0.3     // 끝 속도 (느림)
-    private let accelerationDuration: Double = 2.0  // 가속 시간
-    private let totalSpinDuration: Double = 4.0     // 전체 스핀 시간
+    // 🎲 자연스러운 2단계 룰렛 시스템
+    private let phase1Duration: Double = 1.5   // 1단계: 적당히 빠르게 시작
+    private let phase2Duration: Double = 3.0   // 2단계: 점진적 감속  
+    private let totalSpinDuration: Double = 4.5 // 전체 시간
+    
+    // 각 단계별 속도 - 자연스럽게
+    private let phase1Speed: Double = 0.12     // 적당히 빠른 시작
+    private let phase2StartSpeed: Double = 0.12 // 감속 시작 속도
+    private let phase2EndSpeed: Double = 0.8   // 마지막에 적당히 느리게
+    
+    @Published var currentPhase: Int = 1
+    @Published var spinStartTime: Date = Date()
     
     func startRoulette(with faces: [DetectedFace]) {
         guard faces.count > 1 else {
@@ -38,24 +45,53 @@ class RouletteController: ObservableObject {
         self.isSpinning = true
         self.winner = nil
         self.currentHighlightedIndex = 0
-        self.spinningSpeed = initialSpeed
+        self.currentPhase = 1
+        self.spinStartTime = Date()
+        self.spinningSpeed = phase1Speed
+        
+        print("🎲 룰렛 시작! 2단계 시스템 (총 \(totalSpinDuration)초)")
         
         // 룰렛 시작 사운드
         SoundManager.shared.playStartSound()
         
-        // 룰렛 타이머 시작
-        startSpinAnimation()
+        // 1단계: 적당히 빠른 시작
+        startPhase1()
+    }
+    
+    // 🎯 1단계: 적당히 빠른 시작
+    private func startPhase1() {
+        print("📍 Phase 1: 적당히 빠른 시작 (\(phase1Duration)초)")
+        currentPhase = 1
+        spinningSpeed = phase1Speed
+        startSpinTimer()
         
-        // 일정 시간 후 종료
-        DispatchQueue.main.asyncAfter(deadline: .now() + totalSpinDuration) { [weak self] in
+        // 1단계 → 2단계 전환
+        DispatchQueue.main.asyncAfter(deadline: .now() + phase1Duration) { [weak self] in
+            self?.startPhase2()
+        }
+    }
+    
+    // 🐌 2단계: 점진적 감속
+    private func startPhase2() {
+        print("📍 Phase 2: 점진적 감속 시작 (\(phase2Duration)초)")
+        currentPhase = 2
+        startGradualSlowdown()
+        
+        // 2단계 완료 후 종료
+        DispatchQueue.main.asyncAfter(deadline: .now() + phase2Duration) { [weak self] in
             self?.stopRoulette()
         }
     }
     
-    private func startSpinAnimation() {
+    private func startSpinTimer() {
         spinTimer = Timer.scheduledTimer(withTimeInterval: spinningSpeed, repeats: true) { [weak self] _ in
             self?.updateHighlight()
         }
+    }
+    
+    private func restartSpinTimer() {
+        spinTimer?.invalidate()
+        startSpinTimer()
     }
     
     private func updateHighlight() {
@@ -64,26 +100,45 @@ class RouletteController: ObservableObject {
         // 다음 얼굴로 이동
         currentHighlightedIndex = (currentHighlightedIndex + 1) % faces.count
         
-        // 시간에 따른 속도 조절 (점진적으로 느려짐)
-        let elapsedTime = totalSpinDuration - (spinTimer?.fireDate.timeIntervalSinceNow ?? 0)
-        let progress = min(elapsedTime / accelerationDuration, 1.0)
-        
-        // ease-out 효과로 속도 조절
-        let easeOutProgress = 1 - pow(1 - progress, 3)
-        spinningSpeed = initialSpeed + (finalSpeed - initialSpeed) * easeOutProgress
-        
-        // 타이머 재시작 (새로운 속도로)
-        spinTimer?.invalidate()
-        if isSpinning {
-            startSpinAnimation()
+        // 단계별 사운드와 햅틱
+        switch currentPhase {
+        case 1:
+            // 1단계: 적당한 틱
+            SoundManager.shared.playSpinSound()
+            let mediumFeedback = UIImpactFeedbackGenerator(style: .medium)
+            mediumFeedback.impactOccurred()
+        case 2:
+            // 2단계: 긴장감 있는 틱
+            SoundManager.shared.playSpinSound()
+            let heavyFeedback = UIImpactFeedbackGenerator(style: .heavy)
+            heavyFeedback.impactOccurred()
+        default:
+            break
         }
+    }
+    
+    // 🐌 2단계에서 점진적으로 느려지는 타이머
+    private func startGradualSlowdown() {
+        let slowdownSteps = 12 // 12단계로 나누어 자연스럽게 감속
+        let stepDuration = phase2Duration / Double(slowdownSteps)
         
-        // 룰렛 틱 사운드
-        SoundManager.shared.playSpinSound()
-        
-        // 햅틱 피드백
-        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-        impactFeedback.impactOccurred()
+        for step in 0..<slowdownSteps {
+            let delay = stepDuration * Double(step)
+            let progress = Double(step) / Double(slowdownSteps - 1)
+            
+            // 자연스러운 ease-out 곡선으로 속도 계산
+            let easeOutProgress = 1 - pow(1 - progress, 1.5)
+            let currentStepSpeed = phase2StartSpeed + (phase2EndSpeed - phase2StartSpeed) * easeOutProgress
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                guard let self = self, self.currentPhase == 2 else { return }
+                
+                self.spinningSpeed = currentStepSpeed
+                self.restartSpinTimer()
+                
+                print("🐌 Step \(step + 1)/\(slowdownSteps): speed = \(String(format: "%.2f", currentStepSpeed))초")
+            }
+        }
     }
     
     private func stopRoulette() {
@@ -118,7 +173,9 @@ class RouletteController: ObservableObject {
         currentHighlightedIndex = 0
         winner = nil
         faces.removeAll()
-        spinningSpeed = initialSpeed
+        currentPhase = 1
+        spinStartTime = Date()
+        spinningSpeed = phase1Speed
     }
     
     deinit {

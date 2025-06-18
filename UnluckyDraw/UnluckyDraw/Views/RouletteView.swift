@@ -12,103 +12,206 @@ struct RouletteView: View {
     let faces: [DetectedFace]
     let currentHighlightedIndex: Int
     let isSpinning: Bool
+    let currentPhase: Int  // 단계 정보 추가
     let onComplete: () -> Void
     
     @State private var showCompletionMessage = false
     
     var body: some View {
-        VStack(spacing: 20) {
-            // Status Header
-            VStack(spacing: 8) {
-                if isSpinning {
-                    HStack(spacing: 8) {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                        Text("Spinning...")
-                            .font(.headline)
-                            .foregroundColor(.primaryRed)
-                    }
-                    
-                    Text("Finding a victim...")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                } else {
-                    Image(systemName: "target")
-                        .font(.system(size: 32))
-                        .foregroundColor(.winnerGreen)
-                    Text("Draw Complete!")
-                        .font(.headline)
-                        .foregroundColor(.darkGray)
-                }
+        ZStack {
+            // 🌌 룰렛 중에는 전체 화면 어둡게
+            if isSpinning {
+                Color.black
+                    .opacity(0.85)
+                    .ignoresSafeArea()
+                    .animation(.easeInOut(duration: 0.5), value: isSpinning)
             }
-            .padding()
             
-            // Image with Roulette Animation
-            GeometryReader { geometry in
-                ZStack {
-                    // Background Image
-                    Image(uiImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .cornerRadius(12)
-                        .brightness(isSpinning ? -0.1 : 0)
-                    
-                    // Face Overlays with Roulette Effect
-                    ForEach(Array(faces.enumerated()), id: \.element.id) { index, face in
-                        RouletteOverlay(
-                            face: face,
-                            index: index,
-                            isHighlighted: index == currentHighlightedIndex,
-                            isSpinning: isSpinning,
-                            imageSize: calculateImageSize(geometry: geometry)
-                        )
-                    }
-                    
-                    // Spinning Effect Overlay
+            VStack(spacing: 20) {
+                // Status Header - 단계별 다른 메시지
+                VStack(spacing: 8) {
                     if isSpinning {
-                        SpinningEffectView()
-                    }
-                }
-            }
-            .padding(.horizontal, 20)
-            
-            // Face Counter
-            if faces.count > 1 {
-                HStack {
-                    Text("Participants:")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                    
-                    ForEach(0..<faces.count, id: \.self) { index in
-                        Circle()
-                            .fill(index == currentHighlightedIndex ? Color.highlightYellow : Color.gray.opacity(0.3))
-                            .frame(width: 8, height: 8)
-                            .scaleEffect(index == currentHighlightedIndex ? 1.5 : 1.0)
-                            .animation(.easeInOut(duration: 0.1), value: currentHighlightedIndex)
+                        HStack(spacing: 8) {
+                            // 단계별 아이콘
+                            getPhaseIcon()
+                            
+                            Text(getPhaseMessage())
+                                .font(.headline)
+                                .foregroundColor(getPhaseColor())
+                                .animation(.easeInOut(duration: 0.3), value: currentHighlightedIndex)
+                        }
+                        
+                        Text(getPhaseSubMessage())
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .animation(.easeInOut(duration: 0.3), value: currentHighlightedIndex)
+                    } else {
+                        Image(systemName: "target")
+                            .font(.system(size: 32))
+                            .foregroundColor(.winnerGreen)
+                        Text("Draw Complete!")
+                            .font(.headline)
+                            .foregroundColor(.darkGray)
                     }
                 }
                 .padding()
-            }
-            
-            Spacer()
-            
-            // Instructions
-            if isSpinning {
-                Text("🎰 Who will it be?")
-                    .font(.headline)
-                    .foregroundColor(.unluckyRed)
+                
+                // Image with Roulette Animation
+                GeometryReader { geometry in
+                    ZStack {
+                        // Background Image - 스포트라이트 효과를 위해 흑백 처리
+                        Image(uiImage: image)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .cornerRadius(16)
+                            .saturation(0)  // 흑백 처리
+                            .brightness(-0.2)
+                            .overlay(
+                                // 테두리 효과 - 룰렛 중에만
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(
+                                        LinearGradient(
+                                            colors: [.highlightYellow, .primaryOrange, .highlightYellow],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: isSpinning ? 4 : 0
+                                    )
+                                    .shadow(color: .highlightYellow.opacity(0.6), radius: isSpinning ? 12 : 0)
+                                    .animation(.easeInOut(duration: 0.3), value: isSpinning)
+                            )
+                        
+                        // Face Overlays with Roulette Effect
+                        ForEach(Array(faces.enumerated()), id: \.element.id) { index, face in
+                            RouletteOverlay(
+                                face: face,
+                                index: index,
+                                isHighlighted: index == currentHighlightedIndex,
+                                isSpinning: isSpinning,
+                                imageSize: calculateImageSize(geometry: geometry)
+                            )
+                        }
+                        
+                        // 🎆 스포트라이트 효과: 선택된 얼굴만 컬러로!
+                        if isSpinning {
+                            ForEach(Array(faces.enumerated()), id: \.element.id) { index, face in
+                                if index == currentHighlightedIndex {
+                                    // 선택된 얼굴만 컬러로 표시
+                                    SpotlightOverlay(
+                                        face: face,
+                                        originalImage: image,
+                                        imageSize: calculateImageSize(geometry: geometry)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                
+                // Face Counter
+                if faces.count > 1 {
+                    HStack {
+                        Text("Participants:")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        
+                        ForEach(0..<faces.count, id: \.self) { index in
+                            Circle()
+                                .fill(index == currentHighlightedIndex ? Color.highlightYellow : Color.gray.opacity(0.3))
+                                .frame(width: 8, height: 8)
+                                .scaleEffect(index == currentHighlightedIndex ? 1.5 : 1.0)
+                                .animation(.easeInOut(duration: 0.1), value: currentHighlightedIndex)
+                        }
+                    }
                     .padding()
+                }
+                
+                Spacer()
+                
+                // Instructions - 단계별 다른 메시지
+                if isSpinning {
+                    Text(getBottomMessage())
+                        .font(.headline)
+                        .foregroundColor(getPhaseColor())
+                        .padding()
+                        .scaleEffect(currentHighlightedIndex % 2 == 0 ? 1.0 : 1.05) // 미세한 움직임
+                        .animation(.easeInOut(duration: 0.1), value: currentHighlightedIndex)
+                }
             }
-        }
-        .onChange(of: isSpinning) { spinning in
-            if !spinning {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    showCompletionMessage = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                        onComplete()
+            .onChange(of: isSpinning) { spinning in
+                if !spinning {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        showCompletionMessage = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            onComplete()
+                        }
                     }
                 }
             }
+        }
+    }
+    
+    // MARK: - 단계별 분위기 연출 함수들
+    
+    @ViewBuilder
+    private func getPhaseIcon() -> some View {
+        switch currentPhase {
+        case 1:
+            Image(systemName: "hare.fill")
+                .font(.title2)
+                .foregroundColor(.orange)
+        case 2:
+            Image(systemName: "timer")
+                .font(.title2)
+                .foregroundColor(.red)
+        default:
+            ProgressView()
+                .scaleEffect(0.8)
+        }
+    }
+    
+    private func getPhaseMessage() -> String {
+        switch currentPhase {
+        case 1:
+            return "Spinning..."
+        case 2:
+            return "Slowing down..."
+        default:
+            return "Spinning..."
+        }
+    }
+    
+    private func getPhaseSubMessage() -> String {
+        switch currentPhase {
+        case 1:
+            return "Going fast!"
+        case 2:
+            return "Who will it be?!"
+        default:
+            return "Finding a victim..."
+        }
+    }
+    
+    private func getBottomMessage() -> String {
+        switch currentPhase {
+        case 1:
+            return "⚡ Spotlight spinning!"
+        case 2:
+            return "🎰 Almost there!"
+        default:
+            return "🎰 Who will it be?"
+        }
+    }
+    
+    private func getPhaseColor() -> Color {
+        switch currentPhase {
+        case 1:
+            return .orange
+        case 2:
+            return .red
+        default:
+            return .primaryRed
         }
     }
     
@@ -143,88 +246,89 @@ struct RouletteOverlay: View {
         let displayBox = face.displayBoundingBox(for: imageSize)
         
         ZStack {
-            // 메인 얼굴 사각형 (더 엇은 두께, 더 잘 보이는 색상)
-            Rectangle()
+            // 메인 얼굴 사각형 - 룰렛 중에는 더 간단하고 임팩트 있게
+            RoundedRectangle(cornerRadius: 12)
                 .stroke(
-                    isHighlighted ? Color.highlightYellow : Color.primaryRed.opacity(0.8),
-                    lineWidth: isHighlighted ? 3 : 2
+                    isHighlighted ? Color.highlightYellow : Color.primaryRed.opacity(0.6),
+                    lineWidth: isHighlighted ? 6 : 3
                 )
                 .background(
-                    (isHighlighted ? Color.highlightYellow : Color.primaryRed)
-                        .opacity(isHighlighted ? 0.15 : 0.08)
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(
+                            (isHighlighted ? Color.highlightYellow : Color.primaryRed)
+                                .opacity(isHighlighted ? 0.25 : 0.1)
+                        )
                 )
                 .frame(width: displayBox.width, height: displayBox.height)
                 .position(x: displayBox.midX, y: displayBox.midY)
-                .scaleEffect(isHighlighted ? 1.05 : 1.0)
-                .animation(.easeInOut(duration: 0.1), value: isHighlighted)
+                .scaleEffect(isHighlighted ? 1.15 : 0.9)  // 더 큰 차이
+                .opacity(isHighlighted ? 1.0 : 0.6)      // 더 강한 대비
+                .shadow(
+                    color: isHighlighted ? Color.highlightYellow.opacity(0.6) : Color.clear,
+                    radius: isHighlighted ? 12 : 0
+                )
+                .animation(.easeInOut(duration: 0.2), value: isHighlighted)
             
-            // 하이라이트 효과
-            if isHighlighted {
-                // 펄싱 테두리
-                Rectangle()
-                    .stroke(Color.highlightYellow, lineWidth: 4)
-                    .frame(width: displayBox.width, height: displayBox.height)
-                    .position(x: displayBox.midX, y: displayBox.midY)
-                    .opacity(0.8)
-                    .scaleEffect(1.1)
-                    .animation(
-                        .easeInOut(duration: 0.4).repeatForever(autoreverses: true),
-                        value: isSpinning
-                    )
-                
-                // 숫자 배지 (더 큰 사이즈, 더 선명한 색상)
+            // 숫자 배지 - 룰렛 중에는 숨기고, 완료 후에만 표시
+            if !isSpinning {
                 Text("\(index + 1)")
-                    .font(.system(size: 16, weight: .black))
-                    .foregroundColor(.black)
-                    .padding(8)
+                    .font(.system(size: isHighlighted ? 18 : 14, weight: .black))
+                    .foregroundColor(isHighlighted ? .black : .white)
+                    .padding(isHighlighted ? 10 : 8)
                     .background(
                         Circle()
-                            .fill(Color.highlightYellow)
-                            .shadow(color: Color.highlightYellow.opacity(0.5), radius: 6)
+                            .fill(isHighlighted ? Color.highlightYellow : Color.primaryRed)
+                            .shadow(
+                                color: isHighlighted ? Color.highlightYellow.opacity(0.4) : Color.black.opacity(0.2),
+                                radius: isHighlighted ? 6 : 2
+                            )
                     )
                     .position(
-                        x: displayBox.minX + 25,
-                        y: displayBox.minY + 25
+                        x: displayBox.minX + (isHighlighted ? 28 : 22),
+                        y: displayBox.minY + (isHighlighted ? 28 : 22)
                     )
-                    .scaleEffect(1.3)
-            } else {
-                // 일반 숫자 배지 (기존보다 약간 크게)
-                Text("\(index + 1)")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.white)
-                    .padding(6)
-                    .background(
-                        Circle()
-                            .fill(Color.primaryRed)
-                            .shadow(color: Color.black.opacity(0.3), radius: 2)
-                    )
-                    .position(
-                        x: displayBox.minX + 20,
-                        y: displayBox.minY + 20
-                    )
+                    .scaleEffect(isHighlighted ? 1.2 : 1.0)
+                    .opacity(isHighlighted ? 1.0 : 0.8)
+                    .animation(.easeInOut(duration: 0.15), value: isHighlighted)
             }
         }
     }
 }
 
-struct SpinningEffectView: View {
-    @State private var rotationAngle: Double = 0
+// MARK: - 🎆 스포트라이트 효과 컴포넌트
+struct SpotlightOverlay: View {
+    let face: DetectedFace
+    let originalImage: UIImage
+    let imageSize: CGSize
     
     var body: some View {
+        let displayBox = face.displayBoundingBox(for: imageSize)
+        
+        // 선택된 얼굴 영역만 컬러로 표시
         ZStack {
-            // Spinning rays
-            ForEach(0..<8) { index in
-                Rectangle()
-                    .fill(Color.highlightYellow.opacity(0.3))
-                    .frame(width: 2, height: 50)
-                    .offset(y: -25)
-                    .rotationEffect(.degrees(Double(index) * 45 + rotationAngle))
-            }
-        }
-        .onAppear {
-            withAnimation(.linear(duration: 0.5).repeatForever(autoreverses: false)) {
-                rotationAngle = 360
-            }
+            // 컬러 이미지를 얼굴 영역에만 표시
+            Image(uiImage: originalImage)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: imageSize.width, height: imageSize.height)
+                .mask(
+                    // 얼굴 영역만 드러나게 마스크 처리
+                    RoundedRectangle(cornerRadius: 12)
+                        .frame(width: displayBox.width, height: displayBox.height)
+                        .position(x: displayBox.midX, y: displayBox.midY)
+                )
+                .position(x: imageSize.width / 2, y: imageSize.height / 2)
+                .shadow(color: .highlightYellow.opacity(0.8), radius: 15)
+                .scaleEffect(1.02) // 살짝 크게
+                .animation(.easeInOut(duration: 0.15), value: face.id)
+                .overlay(
+                    // 스포트라이트 테두리 효과
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.highlightYellow, lineWidth: 3)
+                        .frame(width: displayBox.width, height: displayBox.height)
+                        .position(x: displayBox.midX, y: displayBox.midY)
+                        .shadow(color: .highlightYellow.opacity(0.6), radius: 8)
+                )
         }
     }
 }
@@ -235,6 +339,7 @@ struct SpinningEffectView: View {
         faces: [],
         currentHighlightedIndex: 0,
         isSpinning: true,
+        currentPhase: 2,  // 미리보기용
         onComplete: {}
     )
 }
