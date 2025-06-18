@@ -18,45 +18,7 @@ struct ResultView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // 네비게이션 바 (좌상단 HIG 준수)
-            HStack {
-                Button(action: {
-                    HapticManager.selection()
-                    onClose()
-                }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                        Text("Back")
-                            .font(.body)
-                    }
-                    .foregroundColor(.unluckyRed)
-                }
-                
-                Spacer()
-                
-                Text("Result")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.darkGray)
-                
-                Spacer()
-                
-                // 균형을 맞춰주는 빈 공간
-                HStack(spacing: 4) {
-                    Image(systemName: "chevron.left")
-                        .font(.title3)
-                    Text("Back")
-                        .font(.body)
-                }
-                .opacity(0)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 10)
-            .padding(.bottom, 5)
-            
-            // Header (임팩트 있고 재미있게!)
+            // Header (임팩트 있고 재미있게!) - 헤더 하나로 통합
             VStack(spacing: 12) {
                 Text("💥")
                     .font(.system(size: 60))
@@ -70,8 +32,8 @@ struct ResultView: View {
                     .scaleEffect(showAnimation ? 1.0 : 0.3)
                     .animation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.2), value: showAnimation)
             }
-            .padding(.top, 5)
-            .padding(.bottom, 15)
+            .padding(.top, 30)
+            .padding(.bottom, 20)
             
             // Winner Image with Immediate Zoom
             GeometryReader { _ in
@@ -106,32 +68,59 @@ struct ResultView: View {
             
             Spacer(minLength: 10)
             
-            // Action Button (HIG 준수 디자인)
-            Button(action: {
-                HapticManager.impact()
-                onPlayAgain()
-            }) {
-                HStack {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                    Text("Pick Another Victim")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                }
-                .foregroundColor(.white)
-                .padding(.vertical, 16)
-                .padding(.horizontal, 24)
-                .frame(maxWidth: .infinity)
-                .background(
-                    LinearGradient(
-                        gradient: Gradient(colors: [.unluckyRed, .unluckyOrange]),
-                        startPoint: .leading,
-                        endPoint: .trailing
+            // Action Buttons (좌우 배치 옵션)
+            HStack(spacing: 12) {
+                // 메인으로 돌아가기 버튼
+                Button(action: {
+                    HapticManager.selection()
+                    onClose()
+                }) {
+                    VStack(spacing: 8) {
+                        Image(systemName: "house.fill")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        Text("Home")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                    }
+                    .foregroundColor(.darkGray)
+                    .padding(.vertical, 20)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.white)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                     )
-                )
-                .cornerRadius(14)
-                .shadow(color: .unluckyRed.opacity(0.3), radius: 8, x: 0, y: 4)
+                    .cornerRadius(14)
+                    .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                }
+                
+                // 다시 뛡기 버튼
+                Button(action: {
+                    HapticManager.impact()
+                    onPlayAgain()
+                }) {
+                    VStack(spacing: 8) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        Text("Try Again")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.vertical, 20)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: [.unluckyRed, .unluckyOrange]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(14)
+                    .shadow(color: .unluckyRed.opacity(0.3), radius: 8, x: 0, y: 4)
+                }
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 20)
