@@ -194,6 +194,7 @@ class FaceDetectionController: ObservableObject {
         
         if results.isEmpty {
             self.error = .noFacesDetected
+            print("⚠️ No faces detected in image")
             return
         }
         
@@ -240,6 +241,16 @@ class FaceDetectionController: ObservableObject {
             return face
         }
         
+        // 필터링 후에도 얼굴이 없으면 에러
+        if faces.isEmpty {
+            self.error = .noFacesDetected
+            print("⚠️ No valid faces found after filtering")
+            if !results.isEmpty {
+                print("  Original detections were filtered out due to quality criteria")
+            }
+            return
+        }
+        
         self.detectedFaces = faces
         
         // 디버깅 정보 출력
@@ -247,15 +258,8 @@ class FaceDetectionController: ObservableObject {
         print("  • Total detected: \(results.count)")
         print("  • Filtered faces: \(faces.count)")
         
-        if faces.isEmpty {
-            print("⚠️ No valid faces found after filtering")
-            if !results.isEmpty {
-                print("  Original detections were filtered out due to quality criteria")
-            }
-        } else {
-            for (index, face) in faces.enumerated() {
-                print("  Face \(index + 1): confidence=\(String(format: "%.2f", face.confidence)), area=\(String(format: "%.4f", face.boundingBox.width * face.boundingBox.height))")
-            }
+        for (index, face) in faces.enumerated() {
+            print("  Face \(index + 1): confidence=\(String(format: "%.2f", face.confidence)), area=\(String(format: "%.4f", face.boundingBox.width * face.boundingBox.height))")
         }
         
         print("✅ Face detection completed successfully")

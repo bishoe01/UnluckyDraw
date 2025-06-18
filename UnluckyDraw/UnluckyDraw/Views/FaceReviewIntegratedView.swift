@@ -12,6 +12,7 @@ struct FaceReviewIntegratedView: View {
     @ObservedObject var faceDetectionController: FaceDetectionController
     let onNext: () -> Void
     let onBack: () -> Void
+    let onRetakePhoto: () -> Void // 새로운 콜백 추가
     
     @State private var imageSize: CGSize = .zero
     @State private var showingAddConfirmation = false
@@ -38,10 +39,11 @@ struct FaceReviewIntegratedView: View {
             // Main Content - 이미지와 편집 가능한 얼굴 박스들
             GeometryReader { geometry in
                 ZStack {
-                    // Background Image
+                    // Background Image - 중앙 정렬 추가
                     Image(uiImage: image)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity) // 중앙 정렬을 위한 프레임
                         .cornerRadius(12)
                         .onAppear {
                             calculateImageSize(geometry: geometry)
@@ -50,10 +52,11 @@ struct FaceReviewIntegratedView: View {
                             calculateImageSize(geometry: geometry)
                         }
                     
-                    // Processing Overlay (얼굴 인식 중일 때)
+                    // Processing Overlay (얼굴 인식 중일 때) - 중앙 정렬 추가
                     if faceDetectionController.isProcessing {
                         Rectangle()
                             .fill(Color.black.opacity(0.3))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity) // 중앙 정렬을 위한 프레임
                             .cornerRadius(12)
                         
                         VStack(spacing: 16) {
@@ -65,6 +68,7 @@ struct FaceReviewIntegratedView: View {
                                 .font(.headline)
                                 .foregroundColor(.white)
                         }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity) // 중앙 정렬을 위한 프레임
                     }
                     
                     // Editable Face Boxes (인식 완료 후)
@@ -102,7 +106,8 @@ struct FaceReviewIntegratedView: View {
                 faceCount: faceDetectionController.editableFaces.count,
                 onStart: startRoulette,
                 onAddFace: addNewFace,
-                onRetry: retryDetection
+                onRetry: retryDetection,
+                onRetakePhoto: onRetakePhoto // 새로운 콜백 전달
             )
         }
         .onAppear {
@@ -206,8 +211,14 @@ struct FaceReviewIntegratedView: View {
     private func retryDetection() {
         HapticManager.impact(.medium)
         print("🔄 Retrying face detection")
+        
+        // 완전히 상태 초기화
         faceDetectionController.clearResults()
-        faceDetectionController.detectFaces(in: image)
+        
+        // 약간의 지연 후 다시 얼굴 인식 시작 (UI 피드백을 위해)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.faceDetectionController.detectFaces(in: self.image)
+        }
     }
 }
 
@@ -371,6 +382,7 @@ struct IntegratedBottomActionsView: View {
     let onStart: () -> Void
     let onAddFace: () -> Void
     let onRetry: () -> Void
+    let onRetakePhoto: () -> Void // 새로운 콜백 추가
     
     var body: some View {
         VStack(spacing: 16) {
@@ -383,48 +395,65 @@ struct IntegratedBottomActionsView: View {
                         .multilineTextAlignment(.center)
                 }
             } else if hasError {
-                // Error State
-                VStack(spacing: 12) {
-                    Text("Don't worry! You can add people manually or try detection again.")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-                    
-                    HStack(spacing: 16) {
-                        Button(action: onRetry) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "arrow.clockwise")
-                                Text("Try Again")
-                            }
-                            .foregroundColor(.primaryRed)
-                            .padding(.vertical, 10)
-                            .padding(.horizontal, 16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.primaryRed, lineWidth: 1)
-                            )
-                        }
+                // Error State - 0명 감지 시 "Try Again"만 강조
+                VStack(spacing: 16) {
+                    VStack(spacing: 8) {
+                        Text("🔍 No faces detected automatically")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.darkGray)
+                            .multilineTextAlignment(.center)
                         
-                        Button(action: onAddFace) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "plus")
-                                Text("Add Manually")
-                            }
-                            .foregroundColor(.white)
-                            .padding(.vertical, 10)
-                            .padding(.horizontal, 16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color.primaryRed)
-                            )
-                        }
+                        Text("Try taking the photo again with better lighting or clearer faces.")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
                     }
+                    
+                    // 강조된 Try Again 버튼 - 카메라로 돌아가기
+                    Button(action: onRetakePhoto) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "camera.fill") // 카메라 아이콘으로 변경
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                            Text("Retake Photo") // 텍스트도 명확하게 변경
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                        }
+                        .foregroundColor(.white)
+                        .padding(.vertical, 16)
+                        .padding(.horizontal, 32)
+                        .background(
+                            LinearGradient(
+                                gradient: Gradient(colors: [.primaryRed, .primaryOrange]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .cornerRadius(12)
+                        .shadow(color: .primaryRed.opacity(0.3), radius: 8, x: 0, y: 4)
+                    }
+                    
+                    // 수동 추가는 작은 텍스트 링크로만 제공
+                    Button(action: onAddFace) {
+                        Text("Or try adding people manually first")
+                            .font(.caption)
+                            .foregroundColor(.primaryRed)
+                            .underline()
+                    }
+                    .padding(.top, 4)
                 }
             } else {
                 // Success State
                 VStack(spacing: 12) {
                     if faceCount > 0 {
                         Text("Perfect! Ready to start the draw.")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
+                    } else {
+                        // 0명인 경우에도 수동 추가 유도
+                        Text("Add people manually to get started.")
                             .font(.caption)
                             .foregroundColor(.gray)
                             .multilineTextAlignment(.center)
@@ -436,7 +465,7 @@ struct IntegratedBottomActionsView: View {
                             HStack(spacing: 8) {
                                 Image(systemName: "plus")
                                     .font(.headline)
-                                Text("Add More")
+                                Text(faceCount == 0 ? "Add People" : "Add More")
                                     .font(.headline)
                                     .fontWeight(.medium)
                             }
@@ -482,6 +511,7 @@ struct IntegratedBottomActionsView: View {
         image: UIImage(systemName: "person.fill") ?? UIImage(),
         faceDetectionController: FaceDetectionController(),
         onNext: {},
-        onBack: {}
+        onBack: {},
+        onRetakePhoto: {} // 새로운 콜백 추가
     )
 }

@@ -110,6 +110,9 @@ struct PhotoDrawView: View {
                                 },
                                 onBack: {
                                     currentStep = .camera
+                                },
+                                onRetakePhoto: {
+                                    retakePhoto() // 새로운 콜백 추가
                                 }
                             )
                             .onAppear {
@@ -225,6 +228,26 @@ struct PhotoDrawView: View {
         rouletteController.reset()
         currentStep = .instruction
         print("✅ App state reset completed")
+    }
+    
+    private func retakePhoto() {
+        print("📷 Retaking photo - clearing current image and going back to camera")
+        
+        // 현재 이미지와 얼굴 인식 결과 초기화
+        cameraManager.capturedImage = nil
+        faceDetectionController.clearResults()
+        
+        // 카메라 단계로 돌아가기
+        withAnimation(.easeInOut(duration: 0.3)) {
+            currentStep = .camera
+        }
+        
+        // 카메라 다시 열기
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.cameraManager.showCamera = true
+        }
+        
+        print("✅ Successfully returned to camera for retake")
     }
 }
 
