@@ -79,18 +79,7 @@ struct RouletteView: View {
                                     .animation(.easeInOut(duration: 0.3), value: isSpinning)
                             )
                         
-                        // 🎯 고정된 프레임들 - 테두리 색상만 변경
-                        ForEach(Array(faces.enumerated()), id: \.element.id) { index, face in
-                            FixedFrameOverlay(
-                                face: face,
-                                index: index,
-                                isHighlighted: index == currentHighlightedIndex,
-                                isSpinning: isSpinning,
-                                imageSize: calculateImageSize(geometry: geometry)
-                            )
-                        }
-                        
-                        // 🎆 스포트라이트 효과 - 선택된 얼굴만 컬러로
+                        // 🎆 스포트라이트 효과 - 선택된 얼굴만 컬러로 (먼저 배치)
                         if isSpinning {
                             ForEach(Array(faces.enumerated()), id: \.element.id) { index, face in
                                 if index == currentHighlightedIndex {
@@ -101,6 +90,17 @@ struct RouletteView: View {
                                     )
                                 }
                             }
+                        }
+                        
+                        // 🎯 고정된 프레임들 - 테두리 색상만 변경 (나중에 배치해서 위에 표시)
+                        ForEach(Array(faces.enumerated()), id: \.element.id) { index, face in
+                            FixedFrameOverlay(
+                                face: face,
+                                index: index,
+                                isHighlighted: index == currentHighlightedIndex,
+                                isSpinning: isSpinning,
+                                imageSize: calculateImageSize(geometry: geometry)
+                            )
                         }
                     }
                 }
@@ -258,7 +258,7 @@ struct FixedFrameOverlay: View {
     }
 }
 
-// MARK: - 🎆 스포트라이트 효과 컴포넌트 (얼굴 밀림 현상 해결)
+// MARK: - 🎆 스포트라이트 효과 컴포넌트 (얼굴 밀림 현상 완전 해결)
 struct SpotlightOverlay: View {
     let face: DetectedFace
     let originalImage: UIImage
@@ -267,18 +267,22 @@ struct SpotlightOverlay: View {
     var body: some View {
         let displayBox = face.displayBoundingBox(for: imageSize)
         
-        // 선택된 얼굴 영역만 컬러로 표시 - 정확한 위치와 크기
-        Image(uiImage: originalImage)
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .frame(width: imageSize.width, height: imageSize.height)
-            .mask(
-                // 얼굴 영역만 드러나게 마스크 처리 - 정확히 동일한 크기
-                RoundedRectangle(cornerRadius: 12)
-                    .frame(width: displayBox.width, height: displayBox.height)
-                    .position(x: displayBox.midX, y: displayBox.midY)
-            )
-            .position(x: imageSize.width / 2, y: imageSize.height / 2)
+        // 🔧 완전히 새로운 접근: 클리핑 방식으로 위치 오차 제거
+        GeometryReader { geometry in
+            Image(uiImage: originalImage)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: imageSize.width, height: imageSize.height)
+                .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                .clipped()
+                .mask(
+                    // 정확히 동일한 좌표와 크기로 마스크 - 둘근 모서리도 동일하게!
+                    RoundedRectangle(cornerRadius: 12)
+                        .frame(width: displayBox.width, height: displayBox.height)
+                        .position(x: displayBox.midX, y: displayBox.midY)
+                )
+        }
+        .frame(width: imageSize.width, height: imageSize.height)
     }
 }
 
