@@ -15,7 +15,13 @@ extension Color {
     static let darkGray = Color(red: 0.15, green: 0.15, blue: 0.15)
     static let lightGray = Color(red: 0.95, green: 0.95, blue: 0.95)
     
-    // 룰렛 하이라이트 색상
+    // 언럭키 드로우 색상 팔레트 (임팩트 있고 재미있는 "걸렸다!" 분위기)
+    static let unluckyRed = Color(red: 0.9, green: 0.2, blue: 0.2)
+    static let unluckyOrange = Color(red: 1.0, green: 0.4, blue: 0.0)
+    static let unluckyDarkRed = Color(red: 0.7, green: 0.1, blue: 0.1)
+    static let warningYellow = Color(red: 1.0, green: 0.8, blue: 0.0)
+    
+    // 룰렛 하이라이트 색상 (기존 유지하되 결과 화면에서는 언럭키 색상 사용)
     static let highlightYellow = Color(red: 1.0, green: 0.84, blue: 0.0)
     static let winnerGreen = Color(red: 0.0, green: 0.78, blue: 0.32)
 }

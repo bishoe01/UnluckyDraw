@@ -15,44 +15,75 @@ struct ResultView: View {
     let onClose: () -> Void
     
     @State private var showAnimation = false
-    @State private var showConfetti = false
     
     var body: some View {
         VStack(spacing: 0) {
-            // Header (간결하게 정리)
-            VStack(spacing: 8) {
-                Text("🎯")
-                    .font(.system(size: 50))
-                    .scaleEffect(showAnimation ? 1.1 : 0.8)
+            // 네비게이션 바 (좌상단 HIG 준수)
+            HStack {
+                Button(action: {
+                    HapticManager.selection()
+                    onClose()
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                        Text("Back")
+                            .font(.body)
+                    }
+                    .foregroundColor(.unluckyRed)
+                }
+                
+                Spacer()
+                
+                Text("Result")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.darkGray)
+                
+                Spacer()
+                
+                // 균형을 맞춰주는 빈 공간
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.left")
+                        .font(.title3)
+                    Text("Back")
+                        .font(.body)
+                }
+                .opacity(0)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
+            .padding(.bottom, 5)
+            
+            // Header (임팩트 있고 재미있게!)
+            VStack(spacing: 12) {
+                Text("💥")
+                    .font(.system(size: 60))
+                    .scaleEffect(showAnimation ? 1.2 : 0.5)
                     .animation(.spring(response: 0.6, dampingFraction: 0.6), value: showAnimation)
                 
-                Text("UNLUCKY WINNER!")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primaryRed)
-                    .scaleEffect(showAnimation ? 1.0 : 0.5)
+                Text("CAUGHT!")
+                    .font(.largeTitle)
+                    .fontWeight(.black)
+                    .foregroundColor(.unluckyRed)
+                    .scaleEffect(showAnimation ? 1.0 : 0.3)
                     .animation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.2), value: showAnimation)
-                
-                Text("Out of \(totalFaces) participants")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                    .opacity(showAnimation ? 1.0 : 0.0)
-                    .animation(.easeInOut.delay(0.4), value: showAnimation)
             }
-            .padding(.top, 20)
-            .padding(.bottom, 10)
+            .padding(.top, 5)
+            .padding(.bottom, 15)
             
             // Winner Image with Immediate Zoom
-            GeometryReader { geometry in
+            GeometryReader { _ in
                 ZStack {
-                    // Background Image (heavily dimmed)
+                    // Background Image (더 라이트하게)
                     Image(uiImage: image)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .cornerRadius(16)
-                        .brightness(-0.6)
-                        .saturation(0.1)
-                        .blur(radius: 2)
+                        .brightness(-0.2)
+                        .saturation(0.4)
+                        .blur(radius: 1)
                     
                     // Large Winner Face - Immediate Display
                     LargeWinnerDisplay(
@@ -61,126 +92,58 @@ struct ResultView: View {
                         showAnimation: showAnimation
                     )
                     
-                    // Confetti Effect
-                    if showConfetti {
-                        ConfettiView()
+                    // 경고 효과 추가!
+                    if showAnimation {
+                        WarningEffectView()
                     }
                 }
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 15)
             
-            // Winner Info Card (컴팩하게 조정)
-            VStack(spacing: 12) {
-                HStack {
-                    Image(systemName: "crown.fill")
-                        .font(.title3)
-                        .foregroundColor(.primaryOrange)
-                    
-                    Text("The Chosen One")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.darkGray)
-                    
-                    Spacer()
-                }
-                
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Detection:")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                        Text("\(Int(winner.confidence * 100))%")
-                            .font(.subheadline)
-                            .fontWeight(.bold)
-                            .foregroundColor(.winnerGreen)
-                    }
-                    
-                    Spacer()
-                    
-                    VStack(alignment: .center, spacing: 4) {
-                        Text("Face Position:")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                        Text("#\(getFacePosition())")
-                            .font(.subheadline)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primaryRed)
-                    }
-                    
-                    Spacer()
-                    
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Text("Unlucky Score:")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                        Text("\(getUnluckyScore())/100")
-                            .font(.subheadline)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primaryRed)
-                    }
-                }
-            }
-            .padding(16)
-            .background(Color.white)
-            .cornerRadius(16)
-            .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-            .padding(.horizontal, 20)
-            .scaleEffect(showAnimation ? 1.0 : 0.8)
-            .opacity(showAnimation ? 1.0 : 0.0)
-            .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.6), value: showAnimation)
+            // 정보 카드 대폭 제거 (필요하면 그냥 간단하게 유지)
+            // 삭제됨
             
             Spacer(minLength: 10)
             
-            // Action Buttons
-            VStack(spacing: 12) {
-                Button(action: {
-                    HapticManager.impact()
-                    onPlayAgain()
-                }) {
-                    HStack {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.headline)
-                        Text("Play Again")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                    }
-                    .foregroundColor(.white)
-                    .padding(.vertical, 14)
-                    .frame(maxWidth: .infinity)
-                    .background(Color.primaryRed)
-                    .cornerRadius(12)
+            // Action Button (HIG 준수 디자인)
+            Button(action: {
+                HapticManager.impact()
+                onPlayAgain()
+            }) {
+                HStack {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                    Text("Pick Another Victim")
+                        .font(.title3)
+                        .fontWeight(.semibold)
                 }
-                
-                Button(action: {
-                    HapticManager.selection()
-                    onClose()
-                }) {
-                    Text("Done")
-                        .font(.headline)
-                        .foregroundColor(.gray)
-                        .padding(.vertical, 14)
-                        .frame(maxWidth: .infinity)
-                        .background(Color.lightGray)
-                        .cornerRadius(12)
-                }
+                .foregroundColor(.white)
+                .padding(.vertical, 16)
+                .padding(.horizontal, 24)
+                .frame(maxWidth: .infinity)
+                .background(
+                    LinearGradient(
+                        gradient: Gradient(colors: [.unluckyRed, .unluckyOrange]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .cornerRadius(14)
+                .shadow(color: .unluckyRed.opacity(0.3), radius: 8, x: 0, y: 4)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 20)
             .opacity(showAnimation ? 1.0 : 0.0)
-            .animation(.easeInOut.delay(0.8), value: showAnimation)
+            .animation(.easeInOut.delay(0.6), value: showAnimation)
         }
         .background(Color.lightGray.ignoresSafeArea())
         .onAppear {
             showAnimation = true
             
-            // Success haptic feedback
-            HapticManager.notification(.success)
-            
-            // Show confetti after delay
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                showConfetti = true
-            }
+            // 강한 햄틱 피드백 ("어! 걸렸네!" 느낌)
+            HapticManager.notification(.warning)
         }
     }
     
@@ -203,6 +166,7 @@ struct ResultView: View {
     }
     
     // MARK: - Helper Functions
+
     private func getFacePosition() -> Int {
         // 얼굴의 중심 좌표를 기준으로 위치 계산
         let centerX = winner.boundingBox.midX
@@ -234,22 +198,24 @@ struct ResultView: View {
     }
 }
 
-// MARK: - Large Winner Display (Immediate)
+// MARK: - Large Winner Display (재미있고 임팩트 있게!)
+
 struct LargeWinnerDisplay: View {
     let winner: DetectedFace
     let originalImage: UIImage
     let showAnimation: Bool
     
     @State private var scale: CGFloat = 0.8
-    @State private var rotationAngle: Double = 0
+    @State private var flashOpacity: Double = 0.0
+    @State private var warningBlink = false
     
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
-                // 대형 얼굴 이미지 (미리 크롭된 이미지 사용!)
+                // 대형 얼굴 이미지 (재미있고 임팩트 있게!)
                 if let croppedFace = winner.croppedImage {
                     VStack(spacing: 16) {
-                        // 대형 얼굴 이미지 (사각형 사진 형태)
+                        // 대형 얼굴 이미지 (경고 효과와 함께)
                         Image(uiImage: croppedFace)
                             .resizable()
                             .aspectRatio(contentMode: .fill)
@@ -259,49 +225,60 @@ struct LargeWinnerDisplay: View {
                                 RoundedRectangle(cornerRadius: 20)
                                     .stroke(
                                         LinearGradient(
-                                            gradient: Gradient(colors: [.winnerGreen, .primaryOrange]),
+                                            gradient: Gradient(colors: [.unluckyRed, .warningYellow, .unluckyOrange]),
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
                                         ),
                                         lineWidth: 6
                                     )
+                                    .opacity(warningBlink ? 1.0 : 0.5)
                             )
-                            .shadow(color: .winnerGreen.opacity(0.3), radius: 15)
+                            .shadow(color: .unluckyRed.opacity(0.6), radius: 15)
                             .scaleEffect(scale)
                             .overlay(
-                                // 크라운 오버레이 (사진 위에 작게)
-                                Image(systemName: "crown.fill")
-                                    .font(.system(size: 28))
-                                    .foregroundColor(.primaryOrange)
-                                    .rotationEffect(.degrees(rotationAngle))
-                                    .shadow(color: .black.opacity(0.4), radius: 3)
-                                    .offset(y: -160) // 사진 이미지 위로 이동
+                                // 경고 아이콘 (사진 위에)
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(.warningYellow)
+                                    .background(
+                                        Circle()
+                                            .fill(Color.unluckyRed)
+                                            .frame(width: 50, height: 50)
+                                    )
+                                    .shadow(color: .black.opacity(0.4), radius: 4)
+                                    .offset(y: -160)
+                                    .scaleEffect(warningBlink ? 1.1 : 0.9)
+                            )
+                            .overlay(
+                                // 깜박임 효과
+                                RoundedRectangle(cornerRadius: 20)
+                                    .fill(Color.unluckyRed.opacity(flashOpacity))
                             )
                         
-                        // 당첨자 텍스트 (사진 아래)
-                        Text("📷 THE UNLUCKY ONE")
-                            .font(.title2)
+                        // 재미있는 텍스트 (더 자연스럽게)
+                        Text("🎢 THE VICTIM")
+                            .font(.title3)
                             .fontWeight(.black)
                             .foregroundColor(.white)
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 12)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
                             .background(
-                                RoundedRectangle(cornerRadius: 15)
+                                Capsule()
                                     .fill(
                                         LinearGradient(
-                                            gradient: Gradient(colors: [.primaryRed, .primaryOrange]),
+                                            gradient: Gradient(colors: [.unluckyRed, .unluckyOrange]),
                                             startPoint: .leading,
                                             endPoint: .trailing
                                         )
                                     )
-                                    .shadow(color: .primaryRed.opacity(0.4), radius: 8)
+                                    .shadow(color: .unluckyRed.opacity(0.4), radius: 6)
                             )
                             .scaleEffect(scale)
                     }
-                    .frame(maxWidth: .infinity) // 전체 너비 사용
-                    .position(x: geometry.size.width / 2, y: geometry.size.height / 2 - 20) // 약간 위로 이동
+                    .frame(maxWidth: .infinity)
+                    .position(x: geometry.size.width / 2, y: geometry.size.height / 2 - 20)
                 } else {
-                    // 미리 크롭된 이미지가 없으면 기본 표시 (폴백)
+                    // 미리 크롭된 이미지가 없으면 기본 표시 (재미있는 폴백)
                     VStack(spacing: 16) {
                         RoundedRectangle(cornerRadius: 20)
                             .fill(Color.gray.opacity(0.3))
@@ -310,29 +287,35 @@ struct LargeWinnerDisplay: View {
                                 VStack {
                                     Image(systemName: "person.fill")
                                         .font(.system(size: 80))
-                                        .foregroundColor(.gray)
-                                    Text("🏆 Winner!")
+                                        .foregroundColor(.unluckyRed)
+                                    Text("🎢 Victim!")
                                         .font(.headline)
                                         .foregroundColor(.white)
                                 }
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: 20)
-                                    .stroke(Color.primaryRed, lineWidth: 6)
+                                    .stroke(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [.unluckyRed, .warningYellow]),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 6
+                                    )
                             )
                             .scaleEffect(scale)
                         
-                        // 당첨자 텍스트 (폴백)
-                        Text("🏆 THE UNLUCKY ONE")
-                            .font(.title2)
+                        Text("🎢 THE VICTIM")
+                            .font(.title3)
                             .fontWeight(.black)
                             .foregroundColor(.white)
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 12)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
                             .background(
-                                RoundedRectangle(cornerRadius: 15)
-                                    .fill(Color.primaryRed)
-                                    .shadow(color: .primaryRed.opacity(0.4), radius: 8)
+                                Capsule()
+                                    .fill(Color.unluckyRed)
+                                    .shadow(color: .unluckyRed.opacity(0.4), radius: 6)
                             )
                             .scaleEffect(scale)
                     }
@@ -342,59 +325,71 @@ struct LargeWinnerDisplay: View {
             }
         }
         .onAppear {
-            // 부드럽고 안정적인 애니메이션 (투명도 제거)
-            withAnimation(.spring(response: 0.8, dampingFraction: 0.8, blendDuration: 0)) {
+            // 재미있고 임팩트 있는 애니메이션!
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
                 scale = 1.0
             }
             
-            // 크라운 회전 효과 (더 자연스럽게)
+            // 깜박임 효과 (어! 걸렸다! 느낌)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                withAnimation(.easeInOut(duration: 0.1).repeatCount(3, autoreverses: true)) {
+                    flashOpacity = 0.3
+                }
+            }
+            
+            // 경고 깜박임 효과
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                withAnimation(.easeInOut(duration: 4.0).repeatForever(autoreverses: true)) {
-                    rotationAngle = 6
+                withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) {
+                    warningBlink = true
                 }
             }
         }
     }
 }
 
-struct ConfettiView: View {
+// MARK: - Warning Effect View (재미있는 경고 효과!)
+
+struct WarningEffectView: View {
     @State private var animate = false
     
     var body: some View {
         ZStack {
-            ForEach(0..<20) { index in
-                ConfettiPiece(index: index)
-                    .offset(y: animate ? 800 : -50)
+            ForEach(0 ..< 8) { index in
+                WarningIcon(index: index)
+                    .offset(
+                        x: animate ? CGFloat.random(in: -300...300) : 0,
+                        y: animate ? CGFloat.random(in: -200...200) : 0
+                    )
+                    .opacity(animate ? 0.0 : 1.0)
                     .animation(
-                        .linear(duration: Double.random(in: 2...4))
-                        .delay(Double.random(in: 0...1)),
+                        .easeOut(duration: Double.random(in: 1.5...2.5))
+                            .delay(Double.random(in: 0...0.5)),
                         value: animate
                     )
             }
         }
         .onAppear {
-            animate = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                animate = true
+            }
         }
     }
 }
 
-struct ConfettiPiece: View {
+struct WarningIcon: View {
     let index: Int
     @State private var rotation: Double = 0
     
-    private let colors: [Color] = [.primaryRed, .primaryOrange, .winnerGreen, .highlightYellow]
+    private let icons = ["exclamationmark.triangle.fill", "bolt.fill", "flame.fill", "exclamationmark.circle.fill"]
+    private let colors: [Color] = [.unluckyRed, .unluckyOrange, .warningYellow, .primaryRed]
     
     var body: some View {
-        Rectangle()
-            .fill(colors[index % colors.count])
-            .frame(width: 8, height: 8)
+        Image(systemName: icons[index % icons.count])
+            .font(.system(size: CGFloat.random(in: 20...40)))
+            .foregroundColor(colors[index % colors.count])
             .rotationEffect(.degrees(rotation))
-            .position(
-                x: CGFloat.random(in: 50...350),
-                y: 0
-            )
             .onAppear {
-                withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) {
+                withAnimation(.linear(duration: 2).repeatForever(autoreverses: false)) {
                     rotation = 360
                 }
             }

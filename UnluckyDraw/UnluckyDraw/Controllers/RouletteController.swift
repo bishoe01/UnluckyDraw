@@ -29,7 +29,7 @@ class RouletteController: ObservableObject {
             // 얼굴이 1개 이하면 바로 결과 표시
             if let singleFace = faces.first {
                 self.winner = singleFace
-                SoundManager.shared.playWinSound()
+                SoundManager.shared.playCaughtSound()
             }
             return
         }
@@ -101,10 +101,10 @@ class RouletteController: ObservableObject {
             print("🏆 Winner selected: Face \(winnerIndex + 1) with croppedImage: \(winnerFace.croppedImage != nil)")
         }
         
-        // 당첨 사운드
-        SoundManager.shared.playWinSound()
+        // "걸렸다!" 사운드 (재미있고 임팩트 있게!)
+        SoundManager.shared.playCaughtSound()
         
-        // 성공 햅틱 피드백
+        // 차분한 햅틱 피드백 (성공이 아닌 선택 느낌)
         let notificationFeedback = UINotificationFeedbackGenerator()
         notificationFeedback.notificationOccurred(.success)
         

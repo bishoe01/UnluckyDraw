@@ -150,7 +150,8 @@ struct PhotoDrawView: View {
                         
                     case .result:
                         if let image = cameraManager.capturedImage,
-                           let winner = rouletteController.winner {
+                           let winner = rouletteController.winner
+                        {
                             ResultView(
                                 image: image,
                                 winner: winner,
@@ -166,7 +167,7 @@ struct PhotoDrawView: View {
             }
         }
         .navigationBarHidden(true)
-        .onChange(of: cameraManager.capturedImage) { oldImage, newImage in
+        .onChange(of: cameraManager.capturedImage) { _, newImage in
             print("📷 Image capture detected: \(newImage != nil ? "SUCCESS" : "FAILED")")
             if newImage != nil {
                 print("🔄 Transitioning to face detection immediately")
@@ -176,7 +177,7 @@ struct PhotoDrawView: View {
                 }
             }
         }
-        .onChange(of: rouletteController.winner) { oldWinner, newWinner in
+        .onChange(of: rouletteController.winner) { _, newWinner in
             if newWinner != nil {
                 print("🏆 Winner found, transitioning to result")
                 // 안정적인 전환을 위해 약간 지연
@@ -200,7 +201,7 @@ struct PhotoDrawView: View {
         case .roulette:
             return "4/4"
         case .result:
-            return "Done"
+            return ""
         }
     }
     
@@ -234,6 +235,7 @@ struct PhotoDrawView: View {
 }
 
 // MARK: - Instruction View
+
 struct InstructionView: View {
     let onNext: () -> Void
     

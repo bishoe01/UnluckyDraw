@@ -29,7 +29,7 @@ struct RouletteView: View {
                             .foregroundColor(.primaryRed)
                     }
                     
-                    Text("Finding the unlucky one...")
+                    Text("Finding a victim...")
                         .font(.caption)
                         .foregroundColor(.gray)
                 } else {
@@ -94,9 +94,9 @@ struct RouletteView: View {
             
             // Instructions
             if isSpinning {
-                Text("🎰 The wheel is spinning...")
+                Text("🎰 Who will it be?")
                     .font(.headline)
-                    .foregroundColor(.primaryRed)
+                    .foregroundColor(.unluckyRed)
                     .padding()
             }
         }

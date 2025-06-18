@@ -33,9 +33,9 @@ class SoundManager: ObservableObject {
         AudioServicesPlaySystemSound(1104) // 틱 사운드
     }
     
-    // 당첨 사운드
-    func playWinSound() {
-        AudioServicesPlaySystemSound(1025) // 카메라 셔터 사운드
+    // "걸렸다!" 사운드 (재미있고 임팩트 있게)
+    func playCaughtSound() {
+        AudioServicesPlaySystemSound(1025) // 카메라 셔터 사운드 (재미있는 "땀!" 느낌)
     }
     
     // 에러 사운드  
@@ -43,9 +43,9 @@ class SoundManager: ObservableObject {
         AudioServicesPlaySystemSound(1006) // 에러 사운드
     }
     
-    // 룰렛 스핀 시작 사운드
+    // 룰렛 스핀 시작 사운드 (재미있게!)
     func playStartSound() {
-        AudioServicesPlaySystemSound(1003) // 메일 전송 사운드
+        AudioServicesPlaySystemSound(1003) // 메일 전송 사운드 (더 에너지 있는 느낌)
     }
     
     // 룰렛 완료 사운드
