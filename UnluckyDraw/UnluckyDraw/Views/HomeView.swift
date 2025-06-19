@@ -16,11 +16,11 @@ struct HomeView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Background Gradient
+                // Background Gradient - 레트로 느낌
                 LinearGradient(
                     gradient: Gradient(colors: [
-                        Color.primaryRed.opacity(0.1),
-                        Color.primaryOrange.opacity(0.05)
+                        Color.retroNavy.opacity(0.1),
+                        Color.retroTeal.opacity(0.05)
                     ]),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -30,9 +30,9 @@ struct HomeView: View {
                 VStack(spacing: 30) {
                     // Header
                     VStack(spacing: 12) {
-                        Image(systemName: "tornado")
+                        Image(systemName: "gamecontroller.fill")
                             .font(.system(size: 60))
-                            .foregroundColor(.primaryRed)
+                            .foregroundColor(.retroTeal)
                         
                         Text("UnluckyDraw")
                             .font(.largeTitle)
@@ -47,24 +47,24 @@ struct HomeView: View {
                     
                     // Photo Draw Cards - 개선된 UI
                     VStack(spacing: 24) {
-                        // 카메라 카드
+                        // 카메라 카드 - 레트로 청록 톤
                         EnhancedPhotoCard(
                             title: "Take New Photo",
                             description: "Capture a group photo with your camera",
                             icon: "camera.fill",
-                            gradientColors: [Color(red: 0.9, green: 0.2, blue: 0.3), Color(red: 0.7, green: 0.1, blue: 0.2)],
+                            gradientColors: [Color.retroTeal, Color.retroDarkTeal],
                             action: {
                                 HapticManager.selection()
                                 showingPhotoDrawCamera = true
                             }
                         )
                         
-                        // 갤러리 카드
+                        // 갤러리 카드 - 레트로 보라 톤
                         EnhancedPhotoCard(
                             title: "Choose from Gallery",
                             description: "Select an existing photo from your library",
                             icon: "photo.on.rectangle.angled",
-                            gradientColors: [Color(red: 0.2, green: 0.6, blue: 0.9), Color(red: 0.1, green: 0.4, blue: 0.7)],
+                            gradientColors: [Color.retroPurple, Color.retroDarkPurple],
                             action: {
                                 HapticManager.selection()
                                 showingPhotoDrawGallery = true
@@ -77,7 +77,7 @@ struct HomeView: View {
                     
                     // Footer
                     HStack(spacing: 4) {
-                        Text("🎲 Roll the dice and find the unlucky one!")
+                        Text("🕹️ Start your retro gaming adventure!")
                             .font(.subheadline)
                             .foregroundColor(.gray)
                             .multilineTextAlignment(.center)

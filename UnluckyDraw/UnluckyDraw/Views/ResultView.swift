@@ -18,17 +18,17 @@ struct ResultView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Header (임팩트 있고 재미있게!) - 헤더 하나로 통합
+            // Header (패배/게임오버 느낌) - 헤더 하나로 통합
             VStack(spacing: 12) {
                 Text("☠️")
                     .font(.system(size: 60))
                     .scaleEffect(showAnimation ? 1.2 : 0.5)
                     .animation(.spring(response: 0.6, dampingFraction: 0.6), value: showAnimation)
                 
-                Text("CAUGHT!")
+                Text("GAME OVER")
                     .font(.largeTitle)
                     .fontWeight(.black)
-                    .foregroundColor(.unluckyRed)
+                    .foregroundColor(.red.opacity(0.8))
                     .scaleEffect(showAnimation ? 1.0 : 0.3)
                     .animation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.2), value: showAnimation)
             }
@@ -110,13 +110,13 @@ struct ResultView: View {
                     .frame(maxWidth: .infinity)
                     .background(
                         LinearGradient(
-                            gradient: Gradient(colors: [.unluckyRed, .unluckyOrange]),
+                            gradient: Gradient(colors: [.gray.opacity(0.8), .gray.opacity(0.6)]),
                             startPoint: .leading,
                             endPoint: .trailing
                         )
                     )
                     .cornerRadius(14)
-                    .shadow(color: .unluckyRed.opacity(0.3), radius: 8, x: 0, y: 4)
+                    .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
                 }
             }
             .padding(.horizontal, 20)
@@ -124,7 +124,17 @@ struct ResultView: View {
             .opacity(showAnimation ? 1.0 : 0.0)
             .animation(.easeInOut.delay(0.6), value: showAnimation)
         }
-        .background(Color.lightGray.ignoresSafeArea())
+        .background(
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color.black.opacity(0.9),
+                    Color.retroCharcoal.opacity(0.8)
+                ]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+        )
         .onAppear {
             showAnimation = true
             
@@ -209,25 +219,25 @@ struct LargeWinnerDisplay: View {
                             .overlay(
                                 RoundedRectangle(cornerRadius: 20)
                                     .stroke(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [.unluckyRed, .warningYellow, .unluckyOrange]),
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        ),
-                                        lineWidth: 6
+                                    LinearGradient(
+                                    gradient: Gradient(colors: [.red.opacity(0.7), .orange.opacity(0.6)]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 4
                                     )
                                     .opacity(1.0) // 고정된 투명도
                             )
-                            .shadow(color: .unluckyRed.opacity(0.6), radius: 15)
+                            .shadow(color: .red.opacity(0.4), radius: 10)
                             .scaleEffect(scale)
                             .overlay(
                                 // 깜박임 효과
                                 RoundedRectangle(cornerRadius: 20)
-                                    .fill(Color.unluckyRed.opacity(flashOpacity))
+                                    .fill(Color.red.opacity(flashOpacity * 0.3))
                             )
                         
                         // 재미있는 텍스트 (더 자연스럽게)
-                        Text("☠️ THE VICTIM")
+                        Text("☠️ ELIMINATED")
                             .font(.title3)
                             .fontWeight(.black)
                             .foregroundColor(.white)
@@ -237,12 +247,12 @@ struct LargeWinnerDisplay: View {
                                 Capsule()
                                     .fill(
                                         LinearGradient(
-                                            gradient: Gradient(colors: [.unluckyRed, .unluckyOrange]),
+                                            gradient: Gradient(colors: [.red.opacity(0.8), .orange.opacity(0.7)]),
                                             startPoint: .leading,
                                             endPoint: .trailing
                                         )
                                     )
-                                    .shadow(color: .unluckyRed.opacity(0.4), radius: 6)
+                                    .shadow(color: .red.opacity(0.3), radius: 4)
                             )
                             .scaleEffect(scale)
                     }
@@ -256,28 +266,28 @@ struct LargeWinnerDisplay: View {
                             .frame(width: 280, height: 280)
                             .overlay(
                                 VStack {
-                                    Image(systemName: "person.fill")
+                                    Image(systemName: "xmark.circle.fill")
                                         .font(.system(size: 80))
-                                        .foregroundColor(.unluckyRed)
-                                    Text("🎢 Victim!")
+                                        .foregroundColor(.red.opacity(0.7))
+                                    Text("☠️ Eliminated")
                                         .font(.headline)
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.gray)
                                 }
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: 20)
                                     .stroke(
                                         LinearGradient(
-                                            gradient: Gradient(colors: [.unluckyRed, .warningYellow]),
+                                            gradient: Gradient(colors: [.red.opacity(0.6), .orange.opacity(0.5)]),
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
                                         ),
-                                        lineWidth: 6
+                                        lineWidth: 4
                                     )
                             )
                             .scaleEffect(scale)
                         
-                        Text("☠️ THE VICTIM")
+                        Text("☠️ ELIMINATED")
                             .font(.title3)
                             .fontWeight(.black)
                             .foregroundColor(.white)
@@ -285,8 +295,8 @@ struct LargeWinnerDisplay: View {
                             .padding(.vertical, 8)
                             .background(
                                 Capsule()
-                                    .fill(Color.unluckyRed)
-                                    .shadow(color: .unluckyRed.opacity(0.4), radius: 6)
+                                    .fill(Color.red.opacity(0.7))
+                                    .shadow(color: .red.opacity(0.3), radius: 4)
                             )
                             .scaleEffect(scale)
                     }
