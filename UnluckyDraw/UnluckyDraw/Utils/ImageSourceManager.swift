@@ -53,6 +53,15 @@ class ImageSourceManager: NSObject, ObservableObject {
         AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
             DispatchQueue.main.async {
                 self?.isCameraPermissionGranted = granted
+                if granted {
+                    print("✅ Camera permission granted, auto-presenting camera")
+                    // 권한 승인 후 자동으로 카메라 표시
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        self?.showImagePicker = true
+                    }
+                } else {
+                    print("❌ Camera permission denied")
+                }
             }
         }
     }
@@ -60,7 +69,17 @@ class ImageSourceManager: NSObject, ObservableObject {
     private func requestPhotoLibraryPermission() {
         PHPhotoLibrary.requestAuthorization(for: .readWrite) { [weak self] status in
             DispatchQueue.main.async {
-                self?.isPhotoLibraryPermissionGranted = (status == .authorized || status == .limited)
+                let granted = (status == .authorized || status == .limited)
+                self?.isPhotoLibraryPermissionGranted = granted
+                if granted {
+                    print("✅ Photo library permission granted, auto-presenting gallery")
+                    // 권한 승인 후 자동으로 갤러리 표시
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        self?.showImagePicker = true
+                    }
+                } else {
+                    print("❌ Photo library permission denied")
+                }
             }
         }
     }
@@ -68,28 +87,35 @@ class ImageSourceManager: NSObject, ObservableObject {
     func presentImageSource(_ sourceType: UIImagePickerController.SourceType) {
         print("📷 Present image source requested: \(sourceType)")
         
+        // 먼저 이전 상태 정리
+        showImagePicker = false
+        
         imageSourceType = sourceType
         
         switch sourceType {
         case .camera:
             if isCameraPermissionGranted {
                 print("📷 Camera permission granted, showing camera")
-                DispatchQueue.main.async {
+                // 약간의 지연을 통해 UI 상태 안정화
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     self.showImagePicker = true
+                    print("✅ Camera picker presented")
                 }
             } else {
                 print("⚠️ Camera permission not granted, requesting permission")
-                checkCameraPermission()
+                requestCameraPermission()
             }
         case .photoLibrary:
             if isPhotoLibraryPermissionGranted {
                 print("🖼️ Photo library permission granted, showing gallery")
-                DispatchQueue.main.async {
+                // 약간의 지연을 통해 UI 상태 안정화
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     self.showImagePicker = true
+                    print("✅ Gallery picker presented")
                 }
             } else {
                 print("⚠️ Photo library permission not granted, requesting permission")
-                checkPhotoLibraryPermission()
+                requestPhotoLibraryPermission()
             }
         default:
             print("⚠️ Unsupported source type: \(sourceType)")
@@ -101,7 +127,20 @@ class ImageSourceManager: NSObject, ObservableObject {
         DispatchQueue.main.async {
             self.selectedImage = image
             self.showImagePicker = false
-            print("✅ Image processing completed")
+            if image != nil {
+                print("✅ Image processing completed successfully")
+            } else {
+                print("⚠️ No image selected")
+            }
+        }
+    }
+    
+    // 상태 초기화 함수 추가
+    func resetState() {
+        print("🔄 Resetting ImageSourceManager state")
+        DispatchQueue.main.async {
+            self.selectedImage = nil
+            self.showImagePicker = false
         }
     }
     
@@ -147,7 +186,15 @@ struct ImagePicker: UIViewControllerRepresentable {
         let picker = UIImagePickerController()
         picker.sourceType = sourceType
         picker.delegate = context.coordinator
-        picker.allowsEditing = false
+        
+        // 갤러리에서 선택할 때는 편집 가능하게 설정
+        if sourceType == .photoLibrary {
+            picker.allowsEditing = true  // 갤러리에서는 크롭 허용
+            print("🖼️ Gallery mode: editing enabled for cropping")
+        } else {
+            picker.allowsEditing = false  // 카메라에서는 원본 사진 사용
+            print("📷 Camera mode: no editing to preserve original")
+        }
         
         // 카메라 최적화 설정
         if sourceType == .camera {
@@ -192,25 +239,36 @@ struct ImagePicker: UIViewControllerRepresentable {
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             print("📷 Image selection completed from: \(picker.sourceType == .camera ? "Camera" : "Photo Library")")
             
-            if let originalImage = info[.originalImage] as? UIImage {
+            var finalImage: UIImage?
+            
+            // 갤러리에서 선택한 경우 편집된 이미지 우선 사용
+            if picker.sourceType == .photoLibrary, let editedImage = info[.editedImage] as? UIImage {
+                finalImage = editedImage
+                print("🖼️ Edited image received from gallery:")
+                print("  Size: \(editedImage.size)")
+                print("  Orientation: \(editedImage.imageOrientation.rawValue)")
+            } else if let originalImage = info[.originalImage] as? UIImage {
+                finalImage = originalImage
                 print("🖼️ Original image received:")
                 print("  Size: \(originalImage.size)")
                 print("  Orientation: \(originalImage.imageOrientation.rawValue)")
                 print("  Source: \(picker.sourceType == .camera ? "Camera" : "Gallery")")
-                
+            }
+            
+            if let image = finalImage {
                 // 이미지 방향 보정 없이 그대로 사용
                 // Vision Framework가 자동으로 방향을 처리합니다
                 
                 // 즉시 UI 업데이트
                 DispatchQueue.main.async {
-                    self.parent.selectedImage = originalImage
-                    print("✅ Image passed to app without modification")
+                    self.parent.selectedImage = image
+                    print("✅ Image passed to app \(picker.sourceType == .photoLibrary && info[.editedImage] != nil ? "with cropping applied" : "without modification")")
                     
                     // 이미지 피커 즉시 닫기
                     self.parent.isPresented = false
                 }
             } else {
-                print("❌ Failed to get original image")
+                print("❌ Failed to get image")
                 DispatchQueue.main.async {
                     self.parent.isPresented = false
                 }

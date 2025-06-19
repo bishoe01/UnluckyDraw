@@ -91,32 +91,33 @@ struct PhotoDrawView: View {
                                 .onAppear {
                                     let sourceTypeName = selectedSourceType == .camera ? "Camera" : "Gallery"
                                     print("📷 \(sourceTypeName) view appeared, opening \(sourceTypeName) immediately")
-                                    if !imageSourceManager.showImagePicker {
-                                        imageSourceManager.presentImageSource(selectedSourceType)
+                                    
+                                    // 초기화 후 진행
+                                    imageSourceManager.resetState()
+                                    
+                                    // 약간의 지연 후 다시 시도
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                        if !self.imageSourceManager.showImagePicker {
+                                            self.imageSourceManager.presentImageSource(self.selectedSourceType)
+                                        }
                                     }
                                 }
                             } else {
-                                VStack(spacing: 20) {
-                                    Image(systemName: "camera.fill")
-                                        .font(.system(size: 50))
-                                        .foregroundColor(.white)
-                                    
-                                    Text("\(selectedSourceType == .camera ? "Camera" : "Photo Library") Permission Required")
-                                        .font(.headline)
-                                        .foregroundColor(.white)
-                                    
-                                    Button("Grant Permission") {
+                                PermissionRequestView(
+                                    sourceType: selectedSourceType,
+                                    onGrantPermission: {
                                         if selectedSourceType == .camera {
                                             imageSourceManager.checkCameraPermission()
                                         } else {
                                             imageSourceManager.checkPhotoLibraryPermission()
                                         }
+                                    },
+                                    onBack: {
+                                        withAnimation(.easeInOut(duration: 0.3)) {
+                                            currentStep = .sourceSelection
+                                        }
                                     }
-                                    .foregroundColor(.primaryRed)
-                                    .padding()
-                                    .background(Color.white)
-                                    .cornerRadius(10)
-                                }
+                                )
                             }
                         }
                         
@@ -180,10 +181,14 @@ struct PhotoDrawView: View {
         }
         .navigationBarHidden(true)
         .onChange(of: imageSourceManager.selectedImage) { _, newImage in
-            print("📷 Image capture detected: \(newImage != nil ? "SUCCESS" : "FAILED")")
-            if newImage != nil {
+            print("📷 Image change detected: \(newImage != nil ? "SUCCESS" : "CLEARED")")
+            if let image = newImage {
+                print("📷 Image details:")
+                print("  Size: \(image.size)")
+                print("  Source: \(selectedSourceType == .camera ? "Camera" : "Gallery")")
                 print("🔄 Transitioning to integrated face review immediately")
-                // 사진 촬영 후 바로 통합 페이지로 이동
+                
+                // 사진 선택 후 바로 통합 페이지로 이동
                 withAnimation(.easeInOut(duration: 0.3)) {
                     currentStep = .faceReviewIntegrated
                 }
@@ -251,7 +256,7 @@ struct PhotoDrawView: View {
     
     private func resetAndStart() {
         print("🔄 Resetting app state")
-        imageSourceManager.selectedImage = nil
+        imageSourceManager.resetState()
         faceDetectionController.clearResults()
         rouletteController.reset()
         currentStep = .sourceSelection
@@ -263,17 +268,12 @@ struct PhotoDrawView: View {
         print("📷 Retaking photo - clearing current image and going back to \(sourceTypeName)")
         
         // 현재 이미지와 얼굴 인식 결과 초기화
-        imageSourceManager.selectedImage = nil
+        imageSourceManager.resetState()
         faceDetectionController.clearResults()
         
         // 이미지 캡처 단계로 돌아가기
         withAnimation(.easeInOut(duration: 0.3)) {
             currentStep = .imageCapture
-        }
-        
-        // 이미지 피커 다시 열기
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.imageSourceManager.presentImageSource(self.selectedSourceType)
         }
         
         print("✅ Successfully returned to \(sourceTypeName) for retake")
@@ -360,6 +360,88 @@ struct InstructionRow: View {
     }
 }
 
+// MARK: - Permission Request View
+
+struct PermissionRequestView: View {
+    let sourceType: UIImagePickerController.SourceType
+    let onGrantPermission: () -> Void
+    let onBack: () -> Void
+    
+    private var iconName: String {
+        sourceType == .camera ? "camera.fill" : "photo.fill"
+    }
+    
+    private var title: String {
+        sourceType == .camera ? "Camera Permission" : "Photo Library Permission"
+    }
+    
+    private var description: String {
+        sourceType == .camera 
+            ? "UnluckyDraw needs camera access to take photos for the drawing game."
+            : "UnluckyDraw needs photo library access to select existing photos for the drawing game."
+    }
+    
+    var body: some View {
+        VStack(spacing: 30) {
+            Spacer()
+            
+            // Icon
+            Image(systemName: iconName)
+                .font(.system(size: 80))
+                .foregroundColor(.primaryRed)
+            
+            // Content
+            VStack(spacing: 16) {
+                Text(title)
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                
+                Text(description)
+                    .font(.body)
+                    .foregroundColor(.gray)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20)
+            }
+            
+            Spacer()
+            
+            // Actions
+            VStack(spacing: 16) {
+                Button(action: onGrantPermission) {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.headline)
+                        Text("Grant Permission")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.vertical, 16)
+                    .padding(.horizontal, 32)
+                    .background(Color.primaryRed)
+                    .cornerRadius(12)
+                }
+                
+                Button(action: onBack) {
+                    HStack {
+                        Image(systemName: "chevron.left")
+                            .font(.caption)
+                        Text("Go Back")
+                            .font(.headline)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(.gray)
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 24)
+                }
+            }
+            .padding(.bottom, 30)
+        }
+        .padding(.horizontal, 30)
+    }
+}
+
 // MARK: - Image Source Selection View
 
 struct ImageSourceSelectionView: View {
@@ -440,7 +522,7 @@ struct ImageSourceSelectionView: View {
                                 .fontWeight(.semibold)
                                 .foregroundColor(.darkGray)
                             
-                            Text("Select an existing photo from your gallery")
+                            Text("Select and crop an existing photo from your gallery")
                                 .font(.caption)
                                 .foregroundColor(.gray)
                         }
