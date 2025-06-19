@@ -124,7 +124,7 @@ struct FaceReviewIntegratedView: View {
                 faceDetectionController.addNewFace()
                 HapticManager.notification(.success)
             }
-            Button("Cancel", role: .cancel) { }
+            Button("Cancel", role: .cancel) {}
         } message: {
             Text("Add a new face box for someone who wasn't detected automatically.")
         }
@@ -168,9 +168,10 @@ struct FaceReviewIntegratedView: View {
             print("  Container aspect: \(String(format: "%.3f", geometry.size.width / geometry.size.height))")
             
             // 얼굴 인식이 완료되었고 editableFaces가 비어있다면 변환
-            if !faceDetectionController.isProcessing && 
-               !faceDetectionController.detectedFaces.isEmpty && 
-               faceDetectionController.editableFaces.isEmpty {
+            if !faceDetectionController.isProcessing &&
+                !faceDetectionController.detectedFaces.isEmpty &&
+                faceDetectionController.editableFaces.isEmpty
+            {
                 print("🔄 Converting detected faces to editable faces...")
                 faceDetectionController.convertToEditableFaces(imageSize: newImageSize)
             }
@@ -406,7 +407,7 @@ struct IntegratedBottomActionsView: View {
     let onRetakePhoto: () -> Void // 새로운 콜백 추가
     
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 8) {
             if isProcessing {
                 // Processing State
                 VStack(spacing: 8) {
@@ -416,54 +417,29 @@ struct IntegratedBottomActionsView: View {
                         .multilineTextAlignment(.center)
                 }
             } else if hasError {
-                // Error State - 0명 감지 시 "Try Again"만 강조
-                VStack(spacing: 16) {
-                    VStack(spacing: 8) {
-                        Text("🔍 No faces detected automatically")
+                Button(action: onRetakePhoto) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "camera.fill")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        Text("Retake Photo")
                             .font(.headline)
                             .fontWeight(.semibold)
-                            .foregroundColor(.darkGray)
-                            .multilineTextAlignment(.center)
-                        
-                        Text("Try taking the photo again with better lighting or clearer faces.")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                            .multilineTextAlignment(.center)
                     }
-                    
-                    // 강조된 Try Again 버튼 - 카메라로 돌아가기
-                    Button(action: onRetakePhoto) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "camera.fill") // 카메라 아이콘으로 변경
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                            Text("Retake Photo") // 텍스트도 명확하게 변경
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                        }
-                        .foregroundColor(.white)
-                        .padding(.vertical, 16)
-                        .padding(.horizontal, 32)
-                        .background(
-                            LinearGradient(
-                                gradient: Gradient(colors: [.primaryRed, .primaryOrange]),
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
+                    .foregroundColor(.white)
+                    .padding(.vertical, 16)
+                    .padding(.horizontal, 32)
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: [.primaryRed, .primaryOrange]),
+                            startPoint: .leading,
+                            endPoint: .trailing
                         )
-                        .cornerRadius(12)
-                        .shadow(color: .primaryRed.opacity(0.3), radius: 8, x: 0, y: 4)
-                    }
-                    
-                    // 수동 추가는 작은 텍스트 링크로만 제공
-                    Button(action: onAddFace) {
-                        Text("Or try adding people manually first")
-                            .font(.caption)
-                            .foregroundColor(.primaryRed)
-                            .underline()
-                    }
-                    .padding(.top, 4)
+                    )
+                    .cornerRadius(12)
+                    .shadow(color: .primaryRed.opacity(0.3), radius: 8, x: 0, y: 4)
                 }
+                
             } else {
                 // Success State
                 VStack(spacing: 12) {
