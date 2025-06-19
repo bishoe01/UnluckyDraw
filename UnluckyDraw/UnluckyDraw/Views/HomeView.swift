@@ -45,45 +45,42 @@ struct HomeView: View {
                     }
                     .padding(.top, 40)
                     
-                    // Mode Selection Cards
-                    VStack(spacing: 20) {
-                        // Photo Draw Options - 두 개로 분리
-                        PhotoModeCard(
+                    // Photo Draw Cards - 개선된 UI
+                    VStack(spacing: 24) {
+                        // 카메라 카드
+                        EnhancedPhotoCard(
                             title: "Take New Photo",
-                            description: "Use camera to capture a group photo",
+                            description: "Capture a group photo with your camera",
                             icon: "camera.fill",
+                            gradientColors: [Color.primaryRed, Color.primaryOrange],
                             action: {
                                 HapticManager.selection()
                                 showingPhotoDrawCamera = true
                             }
                         )
                         
-                        PhotoModeCard(
-                            title: "Choose from Gallery", 
-                            description: "Select an existing photo from your gallery",
+                        // 갤러리 카드
+                        EnhancedPhotoCard(
+                            title: "Choose from Gallery",
+                            description: "Select an existing photo from your library",
                             icon: "photo.fill.on.rectangle.fill",
+                            gradientColors: [Color.primaryOrange, Color.warningYellow],
                             action: {
                                 HapticManager.selection()
                                 showingPhotoDrawGallery = true
                             }
                         )
-                        
-                        // 기존 다른 모드들 - 임시 숨김
-                        // ForEach([DrawMode.number, DrawMode.name], id: \.self) { mode in
-                        //     ModeCard(mode: mode) {
-                        //         HapticManager.selection()
-                        //         selectedMode = mode
-                        //     }
-                        // }
                     }
                     .padding(.horizontal, 20)
                     
                     Spacer()
                     
                     // Footer
-                    Text("Choose your drawing method")
-                        .font(.caption)
+                    Text("Pick your photo source to start the unlucky draw!")
+                        .font(.subheadline)
                         .foregroundColor(.gray)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 40)
                         .padding(.bottom, 20)
                 }
             }
@@ -109,46 +106,88 @@ struct HomeView: View {
     }
 }
 
-// MARK: - Photo Mode Card
-struct PhotoModeCard: View {
+// MARK: - Enhanced Photo Card
+struct EnhancedPhotoCard: View {
     let title: String
     let description: String
     let icon: String
+    let gradientColors: [Color]
     let action: () -> Void
     
+    @State private var isPressed = false
+    
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 16) {
-                // Icon
-                Image(systemName: icon)
-                    .font(.system(size: 32))
-                    .foregroundColor(.primaryRed)
-                    .frame(width: 50, height: 50)
-                
-                // Content
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.darkGray)
+        Button(action: {
+            withAnimation(.easeInOut(duration: 0.1)) {
+                isPressed = true
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation(.easeInOut(duration: 0.1)) {
+                    isPressed = false
+                }
+                action()
+            }
+        }) {
+            VStack(spacing: 20) {
+                // 아이콘 섹션
+                ZStack {
+                    // 배경 원
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: gradientColors),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 80, height: 80)
+                        .shadow(color: gradientColors.first?.opacity(0.3) ?? .clear, radius: 10, x: 0, y: 5)
                     
-                    Text(description)
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.leading)
+                    // 아이콘
+                    Image(systemName: icon)
+                        .font(.system(size: 36, weight: .semibold))
+                        .foregroundColor(.white)
                 }
                 
-                Spacer()
+                // 텍스트 섹션
+                VStack(spacing: 8) {
+                    Text(title)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.darkGray)
+                        .multilineTextAlignment(.center)
+                    
+                    Text(description)
+                        .font(.body)
+                        .foregroundColor(.gray)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                }
                 
-                // Arrow
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.gray)
+                // 화살표 인디케이터
+                HStack {
+                    Spacer()
+                    Image(systemName: "arrow.right.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(gradientColors.first ?? .primaryRed)
+                    Spacer()
+                }
             }
-            .padding(20)
-            .background(Color.white)
-            .cornerRadius(16)
-            .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
+            .padding(.vertical, 30)
+            .padding(.horizontal, 24)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.white)
+                    .shadow(
+                        color: Color.black.opacity(isPressed ? 0.15 : 0.08),
+                        radius: isPressed ? 8 : 15,
+                        x: 0,
+                        y: isPressed ? 3 : 8
+                    )
+            )
+            .scaleEffect(isPressed ? 0.98 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: isPressed)
         }
         .buttonStyle(PlainButtonStyle())
     }
