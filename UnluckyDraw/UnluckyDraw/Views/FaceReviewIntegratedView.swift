@@ -309,19 +309,6 @@ struct IntegratedHeaderView: View {
                         .foregroundColor(.gray)
                 }
             } else if let error = error {
-                VStack(spacing: 8) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.orange)
-                        Text(errorDescription(error))
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                    }
-                    
-                    Text("You can manually add people using the + button")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                }
             } else {
                 // Success State
                 HStack {
@@ -407,99 +394,128 @@ struct IntegratedBottomActionsView: View {
     let onRetakePhoto: () -> Void // 새로운 콜백 추가
     
     var body: some View {
-        VStack(spacing: 8) {
-            if isProcessing {
-                // Processing State
-                VStack(spacing: 8) {
-                    Text("Please wait while we detect faces...")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-                }
-            } else if hasError {
-                Button(action: onRetakePhoto) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "camera.fill")
+        if hasError {
+            // Error State - 중앙 배치로 개선
+            VStack(spacing: 0) {
+                VStack(spacing: 16) {
+                    Image(systemName: "person.crop.circle.badge.questionmark")
+                        .font(.system(size: 50))
+                        .foregroundColor(.primaryOrange)
+                    
+                    VStack(spacing: 12) {
+                        Text("🔍 No faces detected")
                             .font(.title2)
-                            .fontWeight(.semibold)
-                        Text("Retake Photo")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                    }
-                    .foregroundColor(.white)
-                    .padding(.vertical, 16)
-                    .padding(.horizontal, 32)
-                    .background(
-                        LinearGradient(
-                            gradient: Gradient(colors: [.primaryRed, .primaryOrange]),
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .cornerRadius(12)
-                    .shadow(color: .primaryRed.opacity(0.3), radius: 8, x: 0, y: 4)
-                }
-                
-            } else {
-                // Success State
-                VStack(spacing: 12) {
-                    if faceCount > 0 {
-                        Text("Perfect! Ready to start the draw.")
-                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(.darkGray)
+                        
+                        Text("Try taking the photo again")
+                            .font(.body)
                             .foregroundColor(.gray)
                             .multilineTextAlignment(.center)
-                    } else {
-                        // 0명인 경우에도 수동 추가 유도
-                        Text("Add people manually to get started.")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 20)
                     }
                     
-                    HStack(spacing: 16) {
-                        // Add More Button (always visible)
-                        Button(action: onAddFace) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "plus")
+                    VStack(spacing: 12) {
+                        // Retake Photo 버튼
+                        Button(action: onRetakePhoto) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "camera.fill")
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                                Text("Retake Photo")
                                     .font(.headline)
-                                Text(faceCount == 0 ? "Add People" : "Add More")
-                                    .font(.headline)
-                                    .fontWeight(.medium)
+                                    .fontWeight(.semibold)
                             }
-                            .foregroundColor(.primaryRed)
-                            .padding(.vertical, 12)
-                            .padding(.horizontal, 20)
+                            .foregroundColor(.white)
+                            .padding(.vertical, 16)
+                            .padding(.horizontal, 40)
                             .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Color.primaryRed, lineWidth: 2)
+                                LinearGradient(
+                                    gradient: Gradient(colors: [.primaryRed, .primaryOrange]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
                             )
+                            .cornerRadius(12)
+                            .shadow(color: .primaryRed.opacity(0.3), radius: 8, x: 0, y: 4)
+                        }
+                    }
+                }
+                
+                Spacer(minLength: 50) // 하단 여백
+            }
+        } else {
+            // Normal State - 기존 레이아웃 유지
+            VStack(spacing: 8) {
+                if isProcessing {
+                    // Processing State
+                    VStack(spacing: 8) {
+                        Text("Please wait while we detect faces...")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
+                    }
+                } else {
+                    // Success State
+                    VStack(spacing: 12) {
+                        if faceCount > 0 {
+                            Text("Perfect! Ready to start the draw.")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                        } else {
+                            // 0명인 경우에도 수동 추가 유도
+                            Text("Add people manually to get started.")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
                         }
                         
-                        // Start Button (only when faces available)
-                        if faceCount > 0 {
-                            Button(action: onStart) {
+                        HStack(spacing: 16) {
+                            // Add More Button (always visible)
+                            Button(action: onAddFace) {
                                 HStack(spacing: 8) {
-                                    Text("Start Draw")
+                                    Image(systemName: "plus")
                                         .font(.headline)
-                                        .fontWeight(.semibold)
-                                    Image(systemName: "play.fill")
+                                    Text(faceCount == 0 ? "Add People" : "Add More")
                                         .font(.headline)
+                                        .fontWeight(.medium)
                                 }
-                                .foregroundColor(.white)
+                                .foregroundColor(.primaryRed)
                                 .padding(.vertical, 12)
-                                .padding(.horizontal, 24)
+                                .padding(.horizontal, 20)
                                 .background(
                                     RoundedRectangle(cornerRadius: 10)
-                                        .fill(Color.primaryRed)
+                                        .stroke(Color.primaryRed, lineWidth: 2)
                                 )
+                            }
+                            
+                            // Start Button (only when faces available)
+                            if faceCount > 0 {
+                                Button(action: onStart) {
+                                    HStack(spacing: 8) {
+                                        Text("Start Draw")
+                                            .font(.headline)
+                                            .fontWeight(.semibold)
+                                        Image(systemName: "play.fill")
+                                            .font(.headline)
+                                    }
+                                    .foregroundColor(.white)
+                                    .padding(.vertical, 12)
+                                    .padding(.horizontal, 24)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .fill(Color.primaryRed)
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
+            .padding(.horizontal)
+            .padding(.bottom, 30)
         }
-        .padding(.horizontal)
-        .padding(.bottom, 30)
     }
 }
 
