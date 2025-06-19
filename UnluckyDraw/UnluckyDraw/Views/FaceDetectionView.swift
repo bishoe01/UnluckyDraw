@@ -19,41 +19,39 @@ struct FaceDetectionView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            // Status Header
-            VStack(spacing: 8) {
-                if isProcessing {
-                    ProgressView()
-                        .scaleEffect(1.2)
-                    Text("Detecting faces...")
-                        .font(.headline)
-                        .foregroundColor(.gray)
-                } else if let error = error {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 32))
-                        .foregroundColor(.orange)
-                    Text(error.localizedDescription)
-                        .font(.headline)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-                } else {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 32))
-                        .foregroundColor(.winnerGreen)
-                    Text("Found \(detectedFaces.count) face\(detectedFaces.count == 1 ? "" : "s")")
-                        .font(.headline)
-                        .foregroundColor(.darkGray)
+            // 🎰 새로운 아케이드 스타일 얼굴 카운터!
+            ArcadeFaceCounter(
+                faceCount: detectedFaces.count,
+                isProcessing: isProcessing,
+                hasError: error != nil
+            )
+            .padding(.top, 20)
+            
+            // 자동 시작 안내 (필요시)
+            if autoStart && !detectedFaces.isEmpty && !isProcessing && error == nil {
+                HStack(spacing: 8) {
+                    Image(systemName: "timer")
+                        .font(.caption)
+                        .foregroundColor(.retroTeal)
                     
-                    if autoStart && !detectedFaces.isEmpty {
-                        Text("Starting in 2 seconds...")
-                            .font(.caption)
-                            .foregroundColor(.retroTeal)
-                            .onAppear {
-                                checkAutoStart()
-                            }
-                    }
+                    Text("2초 후 자동 시작됩니다...")
+                        .font(.caption)
+                        .foregroundColor(.retroTeal)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.retroTeal.opacity(0.1))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.retroTeal.opacity(0.3), lineWidth: 1)
+                        )
+                )
+                .onAppear {
+                    checkAutoStart()
                 }
             }
-            .padding()
             
             // Image with Face Detection Overlay
             GeometryReader { geometry in

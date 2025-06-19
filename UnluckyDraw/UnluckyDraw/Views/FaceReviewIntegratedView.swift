@@ -19,21 +19,13 @@ struct FaceReviewIntegratedView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            // Found People Count - 강조 표시
-            if !faceDetectionController.isProcessing && faceDetectionController.error == nil {
-                HStack {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.winnerGreen)
-                        .font(.title2)
-                    
-                    Text("Found \(faceDetectionController.editableFaces.count) \(faceDetectionController.editableFaces.count == 1 ? "person" : "people")")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.darkGray)
-                    
-                    Spacer()
-                }
-                .padding(.horizontal)
+            // 🎰 통합 뷰에서도 아케이드 스타일 사용!
+            if !faceDetectionController.isProcessing || faceDetectionController.error != nil || !faceDetectionController.editableFaces.isEmpty {
+                ArcadeFaceCounter(
+                    faceCount: faceDetectionController.editableFaces.count,
+                    isProcessing: faceDetectionController.isProcessing,
+                    hasError: faceDetectionController.error != nil
+                )
                 .padding(.top, 10)
             }
             

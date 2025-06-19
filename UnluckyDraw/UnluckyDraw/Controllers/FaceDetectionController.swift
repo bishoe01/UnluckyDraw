@@ -10,6 +10,7 @@ import Vision
 import UIKit
 import CoreImage
 import AVFoundation
+import AudioToolbox
 
 class FaceDetectionController: ObservableObject {
     @Published var detectedFaces: [DetectedFace] = []
@@ -251,7 +252,14 @@ class FaceDetectionController: ObservableObject {
             return
         }
         
+        // 🎰 원래 로직 유지하되, UI만 점진적으로 업데이트
         self.detectedFaces = faces
+        
+        // UI 애니메이션을 위한 별도 처리 (실제 데이터는 그대로)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            // 마지막에 완료 사운드만
+            SoundManager.shared.playCompleteSound()
+        }
         
         // 디버깅 정보 출력
         print("🎯 Face Detection Results:")
