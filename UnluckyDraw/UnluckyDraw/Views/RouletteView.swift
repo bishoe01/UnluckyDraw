@@ -56,11 +56,14 @@ struct RouletteView: View {
                 
                 // Image with Roulette Animation
                 GeometryReader { geometry in
+                    let imageSize = calculateImageSize(geometry: geometry)
+                    
                     ZStack {
                         // Background Image - 스포트라이트 효과를 위해 흑백 처리
                         Image(uiImage: image)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity) // 중앙 정렬을 위한 프레임
                             .cornerRadius(16)
                             .saturation(0)  // 흑백 처리
                             .brightness(-0.2)
@@ -86,7 +89,8 @@ struct RouletteView: View {
                                     SpotlightOverlay(
                                         face: face,
                                         originalImage: image,
-                                        imageSize: calculateImageSize(geometry: geometry)
+                                        imageSize: imageSize,
+                                        containerSize: geometry.size
                                     )
                                 }
                             }
@@ -99,7 +103,8 @@ struct RouletteView: View {
                                 index: index,
                                 isHighlighted: index == currentHighlightedIndex,
                                 isSpinning: isSpinning,
-                                imageSize: calculateImageSize(geometry: geometry)
+                                imageSize: imageSize,
+                                containerSize: geometry.size
                             )
                         }
                     }
@@ -136,7 +141,7 @@ struct RouletteView: View {
                         .animation(.easeInOut(duration: 0.1), value: currentHighlightedIndex)
                 }
             }
-            .onChange(of: isSpinning) { spinning in
+            .onChange(of: isSpinning) { _, spinning in
                 if !spinning {
                     // 룰렛이 끝나면 즉시 ResultView로 전환 (숫자 배지 표시 없음)
                     onComplete()
@@ -234,9 +239,14 @@ struct FixedFrameOverlay: View {
     let isHighlighted: Bool
     let isSpinning: Bool
     let imageSize: CGSize
+    let containerSize: CGSize // 컨테이너 크기 추가
     
     var body: some View {
         let displayBox = face.displayBoundingBox(for: imageSize)
+        
+        // 이미지가 컨테이너 중앙에 위치하도록 offset 계산
+        let offsetX = (containerSize.width - imageSize.width) / 2
+        let offsetY = (containerSize.height - imageSize.height) / 2
         
         // 고정된 얼굴 프레임 - 테두리 색상만 변경 (숫자 배지 완전 제거)
         RoundedRectangle(cornerRadius: 12)
@@ -249,7 +259,10 @@ struct FixedFrameOverlay: View {
                     .fill(Color.clear) // 배경은 투명
             )
             .frame(width: displayBox.width, height: displayBox.height)
-            .position(x: displayBox.midX, y: displayBox.midY)
+            .position(
+                x: displayBox.midX + offsetX,
+                y: displayBox.midY + offsetY
+            )
             .shadow(
                 color: isHighlighted ? Color.highlightYellow.opacity(0.6) : Color.clear,
                 radius: isHighlighted ? 8 : 0
@@ -263,26 +276,34 @@ struct SpotlightOverlay: View {
     let face: DetectedFace
     let originalImage: UIImage
     let imageSize: CGSize
+    let containerSize: CGSize // 컨테이너 크기 추가
     
     var body: some View {
         let displayBox = face.displayBoundingBox(for: imageSize)
         
-        // 🔧 완전히 새로운 접근: 클리핑 방식으로 위치 오차 제거
-        GeometryReader { geometry in
-            Image(uiImage: originalImage)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: imageSize.width, height: imageSize.height)
-                .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
-                .clipped()
-                .mask(
-                    // 정확히 동일한 좌표와 크기로 마스크 - 둘근 모서리도 동일하게!
-                    RoundedRectangle(cornerRadius: 12)
-                        .frame(width: displayBox.width, height: displayBox.height)
-                        .position(x: displayBox.midX, y: displayBox.midY)
-                )
-        }
-        .frame(width: imageSize.width, height: imageSize.height)
+        // 이미지가 컨테이너 중앙에 위치하도록 offset 계산
+        let offsetX = (containerSize.width - imageSize.width) / 2
+        let offsetY = (containerSize.height - imageSize.height) / 2
+        
+        // 🔧 완전히 새로운 접근: 클립핑 방식으로 위치 오차 제거
+        Image(uiImage: originalImage)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: imageSize.width, height: imageSize.height)
+            .position(
+                x: containerSize.width / 2,
+                y: containerSize.height / 2
+            )
+            .clipped()
+            .mask(
+                // 정확히 동일한 좌표와 크기로 마스크 - 둘근 모서리도 동일하게!
+                RoundedRectangle(cornerRadius: 12)
+                    .frame(width: displayBox.width, height: displayBox.height)
+                    .position(
+                        x: displayBox.midX + offsetX,
+                        y: displayBox.midY + offsetY
+                    )
+            )
     }
 }
 
