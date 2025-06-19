@@ -14,12 +14,12 @@ struct PhotoDrawView: View {
     @StateObject private var faceDetectionController = FaceDetectionController()
     @StateObject private var rouletteController = RouletteController()
     
-    @State private var currentStep: PhotoDrawStep = .sourceSelection
-    @State private var selectedSourceType: UIImagePickerController.SourceType = .camera
+    let initialSourceType: UIImagePickerController.SourceType // 새로운 파라미터
+    
+    @State private var currentStep: PhotoDrawStep = .instruction // 기본값 변경
     @State private var showingResult = false
     
     enum PhotoDrawStep {
-        case sourceSelection       // 🆕 이미지 소스 선택 (카메라 vs 갤러리)
         case instruction          // 카메라용 지시사항
         case imageCapture         // 카메라 또는 갤러리
         case faceReviewIntegrated // 얼굴인식+검수 통합
@@ -60,18 +60,6 @@ struct PhotoDrawView: View {
                     
                     // Main Content
                     switch currentStep {
-                    case .sourceSelection:
-                        ImageSourceSelectionView(
-                            onCameraSelected: {
-                                selectedSourceType = .camera
-                                proceedToInstruction()
-                            },
-                            onGallerySelected: {
-                                selectedSourceType = .photoLibrary
-                                proceedToImageCapture()
-                            }
-                        )
-                        
                     case .instruction:
                         InstructionView {
                             proceedToImageCapture()
@@ -86,10 +74,10 @@ struct PhotoDrawView: View {
                                 ImagePicker(
                                     selectedImage: $imageSourceManager.selectedImage,
                                     isPresented: $imageSourceManager.showImagePicker,
-                                    sourceType: selectedSourceType
+                                    sourceType: initialSourceType // 파라미터 사용
                                 )
                                 .onAppear {
-                                    let sourceTypeName = selectedSourceType == .camera ? "Camera" : "Gallery"
+                                    let sourceTypeName = initialSourceType == .camera ? "Camera" : "Gallery"
                                     print("📷 \(sourceTypeName) view appeared, opening \(sourceTypeName) immediately")
                                     
                                     // 초기화 후 진행
@@ -98,24 +86,23 @@ struct PhotoDrawView: View {
                                     // 약간의 지연 후 다시 시도
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                                         if !self.imageSourceManager.showImagePicker {
-                                            self.imageSourceManager.presentImageSource(self.selectedSourceType)
+                                            self.imageSourceManager.presentImageSource(self.initialSourceType)
                                         }
                                     }
                                 }
                             } else {
                                 PermissionRequestView(
-                                    sourceType: selectedSourceType,
+                                    sourceType: initialSourceType, // 파라미터 사용
                                     onGrantPermission: {
-                                        if selectedSourceType == .camera {
+                                        if initialSourceType == .camera {
                                             imageSourceManager.checkCameraPermission()
                                         } else {
                                             imageSourceManager.checkPhotoLibraryPermission()
                                         }
                                     },
                                     onBack: {
-                                        withAnimation(.easeInOut(duration: 0.3)) {
-                                            currentStep = .sourceSelection
-                                        }
+                                        // 뒤로 가기 대신 닫기
+                                        dismiss()
                                     }
                                 )
                             }
@@ -180,12 +167,20 @@ struct PhotoDrawView: View {
             }
         }
         .navigationBarHidden(true)
+        .onAppear {
+            // 초기 설정: 카메라면 instruction부터, 갤러리면 바로 imageCapture
+            if initialSourceType == .camera {
+                currentStep = .instruction
+            } else {
+                currentStep = .imageCapture
+            }
+        }
         .onChange(of: imageSourceManager.selectedImage) { _, newImage in
             print("📷 Image change detected: \(newImage != nil ? "SUCCESS" : "CLEARED")")
             if let image = newImage {
                 print("📷 Image details:")
                 print("  Size: \(image.size)")
-                print("  Source: \(selectedSourceType == .camera ? "Camera" : "Gallery")")
+                print("  Source: \(initialSourceType == .camera ? "Camera" : "Gallery")")
                 print("🔄 Transitioning to integrated face review immediately")
                 
                 // 사진 선택 후 바로 통합 페이지로 이동
@@ -209,28 +204,21 @@ struct PhotoDrawView: View {
     
     private var stepDescription: String {
         switch currentStep {
-        case .sourceSelection:
-            return "1/5"
         case .instruction:
-            return "2/5"
+            return "1/4"
         case .imageCapture:
-            return "3/5"
+            return initialSourceType == .camera ? "2/4" : "1/4"
         case .faceReviewIntegrated:
-            return "4/5"
+            return initialSourceType == .camera ? "3/4" : "2/4"
         case .roulette:
-            return "5/5"
+            return initialSourceType == .camera ? "4/4" : "3/4"
         case .result:
             return ""
         }
     }
     
-    private func proceedToInstruction() {
-        print("📝 User selected camera - showing instructions")
-        currentStep = .instruction
-    }
-    
     private func proceedToImageCapture() {
-        let sourceTypeName = selectedSourceType == .camera ? "Camera" : "Gallery"
+        let sourceTypeName = initialSourceType == .camera ? "Camera" : "Gallery"
         print("📷 User proceeding to \(sourceTypeName)")
         currentStep = .imageCapture
     }
@@ -259,19 +247,25 @@ struct PhotoDrawView: View {
         imageSourceManager.resetState()
         faceDetectionController.clearResults()
         rouletteController.reset()
-        currentStep = .sourceSelection
+        
+        // 초기 단계로 돌아가기
+        if initialSourceType == .camera {
+            currentStep = .instruction
+        } else {
+            currentStep = .imageCapture
+        }
         print("✅ App state reset completed")
     }
     
     private func retakePhoto() {
-        let sourceTypeName = selectedSourceType == .camera ? "camera" : "gallery"
+        let sourceTypeName = initialSourceType == .camera ? "camera" : "gallery"
         print("📷 Retaking photo - clearing current image and going back to \(sourceTypeName)")
         
         // 현재 이미지와 얼굴 인식 결과 초기화
         imageSourceManager.resetState()
         faceDetectionController.clearResults()
         
-        // 이미지 캡처 단계로 돌아가기
+        // 이미지 캐처 단계로 돌아가기
         withAnimation(.easeInOut(duration: 0.3)) {
             currentStep = .imageCapture
         }
@@ -442,118 +436,6 @@ struct PermissionRequestView: View {
     }
 }
 
-// MARK: - Image Source Selection View
-
-struct ImageSourceSelectionView: View {
-    let onCameraSelected: () -> Void
-    let onGallerySelected: () -> Void
-    
-    var body: some View {
-        VStack(spacing: 30) {
-            Spacer()
-            
-            // Icon
-            Image(systemName: "photo.on.rectangle.angled")
-                .font(.system(size: 80))
-                .foregroundColor(.primaryRed)
-            
-            // Title
-            VStack(spacing: 16) {
-                Text("Choose Photo Source")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .foregroundColor(.darkGray)
-                
-                Text("How would you like to get your photo?")
-                    .font(.body)
-                    .foregroundColor(.gray)
-                    .multilineTextAlignment(.center)
-            }
-            
-            // Options
-            VStack(spacing: 16) {
-                // Camera Option
-                Button(action: onCameraSelected) {
-                    HStack(spacing: 16) {
-                        Image(systemName: "camera.fill")
-                            .font(.system(size: 24))
-                            .foregroundColor(.white)
-                            .frame(width: 50, height: 50)
-                            .background(Color.primaryRed)
-                            .cornerRadius(12)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Take New Photo")
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.darkGray)
-                            
-                            Text("Use camera to capture a group photo")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.gray)
-                    }
-                    .padding(20)
-                    .background(Color.white)
-                    .cornerRadius(16)
-                    .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
-                }
-                .buttonStyle(PlainButtonStyle())
-                
-                // Gallery Option
-                Button(action: onGallerySelected) {
-                    HStack(spacing: 16) {
-                        Image(systemName: "photo.fill.on.rectangle.fill")
-                            .font(.system(size: 24))
-                            .foregroundColor(.white)
-                            .frame(width: 50, height: 50)
-                            .background(Color.primaryOrange)
-                            .cornerRadius(12)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Choose from Gallery")
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.darkGray)
-                            
-                            Text("Select and crop an existing photo from your gallery")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.gray)
-                    }
-                    .padding(20)
-                    .background(Color.white)
-                    .cornerRadius(16)
-                    .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
-            .padding(.horizontal, 20)
-            
-            Spacer()
-            
-            // Footer
-            Text("Both options will use the same drawing process")
-                .font(.caption)
-                .foregroundColor(.gray)
-                .padding(.bottom, 30)
-        }
-        .padding(.horizontal, 30)
-    }
-}
-
 #Preview {
-    PhotoDrawView()
+    PhotoDrawView(initialSourceType: .camera)
 }
