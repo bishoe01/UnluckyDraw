@@ -260,44 +260,44 @@ struct IntegratedHeaderView: View {
     var body: some View {
         VStack(spacing: 12) {
             // Top Row - Navigation and Quick Mode Toggle
-            HStack {
-                Button(action: onBack) {
-                    Image(systemName: "chevron.left")
-                        .font(.title2)
-                        .foregroundColor(.darkGray)
-                }
-                
-                Spacer()
-                
-                // Title
-                Text("Face Detection & Review")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.darkGray)
-                
-                Spacer()
-                
-                // Quick Add Toggle (얼굴 인식 완료 후에만 표시)
-                if !isProcessing && error == nil {
-                    Button(action: onToggleQuickAdd) {
-                        HStack(spacing: 6) {
-                            Image(systemName: isQuickAddMode ? "bolt.fill" : "bolt")
-                                .font(.caption)
-                            Text(isQuickAddMode ? "Quick" : "Quick")
-                                .font(.caption2)
-                                .fontWeight(.semibold)
-                        }
-                        .foregroundColor(isQuickAddMode ? .white : .primaryRed)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(isQuickAddMode ? Color.primaryRed : Color.clear)
-                                .stroke(Color.primaryRed, lineWidth: 1)
-                        )
-                    }
-                }
-            }
+//            HStack {
+//                Button(action: onBack) {
+//                    Image(systemName: "chevron.left")
+//                        .font(.title2)
+//                        .foregroundColor(.darkGray)
+//                }
+//
+//                Spacer()
+//
+//                // Title
+//                Text("Face Detection & Review")
+//                    .font(.headline)
+//                    .fontWeight(.semibold)
+//                    .foregroundColor(.darkGray)
+//
+//                Spacer()
+//
+//                // Quick Add Toggle (얼굴 인식 완료 후에만 표시)
+//                if !isProcessing && error == nil {
+//                    Button(action: onToggleQuickAdd) {
+//                        HStack(spacing: 6) {
+//                            Image(systemName: isQuickAddMode ? "bolt.fill" : "bolt")
+//                                .font(.caption)
+//                            Text(isQuickAddMode ? "Quick" : "Quick")
+//                                .font(.caption2)
+//                                .fontWeight(.semibold)
+//                        }
+//                        .foregroundColor(isQuickAddMode ? .white : .primaryRed)
+//                        .padding(.horizontal, 8)
+//                        .padding(.vertical, 4)
+//                        .background(
+//                            RoundedRectangle(cornerRadius: 10)
+//                                .fill(isQuickAddMode ? Color.primaryRed : Color.clear)
+//                                .stroke(Color.primaryRed, lineWidth: 1)
+//                        )
+//                    }
+//                }
+//            }
             
             // Status Section
             if isProcessing {
