@@ -262,13 +262,15 @@ struct PhotoDrawView: View {
         let sourceTypeName = initialSourceType == .camera ? "camera" : "gallery"
         print("📷 Retaking photo - clearing current image and going back to \(sourceTypeName)")
         
-        // 현재 이미지와 얼굴 인식 결과 초기화
-        imageSourceManager.resetState()
-        faceDetectionController.clearResults()
-        
-        // 이미지 캐처 단계로 돌아가기
+        // 🎯 부드러운 전환을 위해 애니메이션과 함께 처리
         withAnimation(.easeInOut(duration: 0.3)) {
             currentStep = .imageCapture
+        }
+        
+        // 약간의 지연 후 데이터 초기화 (UI 전환 후)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.imageSourceManager.resetState()
+            self.faceDetectionController.clearResults()
         }
         
         print("✅ Successfully returned to \(sourceTypeName) for retake")

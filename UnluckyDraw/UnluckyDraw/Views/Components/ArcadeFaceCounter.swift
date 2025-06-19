@@ -305,6 +305,13 @@ struct ArcadeFaceCounter: View {
     private func animateCountChange(from oldValue: Int, to newValue: Int) {
         guard newValue != oldValue else { return }
         
+        // 🎯 0으로 리셋되는 경우 지연 없이 말끔하게 처리
+        if newValue == 0 {
+            animatedCount = 0
+            bounceScale = 1.0
+            return
+        }
+        
         // 바운스 효과
         withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
             bounceScale = 1.2

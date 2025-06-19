@@ -215,11 +215,12 @@ struct FaceReviewIntegratedView: View {
         HapticManager.impact(.medium)
         print("🔄 Retrying face detection")
         
+        // 🎯 부드러운 전환을 위해 애니메이션과 함께 처리
         // 완전히 상태 초기화
         faceDetectionController.clearResults()
         
-        // 약간의 지연 후 다시 얼굴 인식 시작 (UI 피드백을 위해)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+        // 약간의 지연 후 다시 얼굴 인식 시작 (안정적인 UI 전환을 위해)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             self.faceDetectionController.detectFaces(in: self.image)
         }
     }
