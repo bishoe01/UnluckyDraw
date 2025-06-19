@@ -138,7 +138,8 @@ struct PhotoDrawView: View {
                                 faces: faceDetectionController.detectedFaces,
                                 currentHighlightedIndex: rouletteController.currentHighlightedIndex,
                                 isSpinning: rouletteController.isSpinning,
-                                currentPhase: rouletteController.currentPhase  // 단계 정보 전달
+                                currentPhase: rouletteController.currentPhase,  // 단계 정보 전달
+                                tensionLevel: rouletteController.tensionLevel   // 긴장감 레벨 전달
                             ) {
                                 proceedToResult()
                             }

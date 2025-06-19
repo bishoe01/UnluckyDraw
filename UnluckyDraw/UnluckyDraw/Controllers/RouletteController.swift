@@ -5,9 +5,9 @@
 //  Created on 2025-06-16
 //
 
+import AVFoundation
 import Foundation
 import SwiftUI
-import AVFoundation
 
 class RouletteController: ObservableObject {
     @Published var currentHighlightedIndex: Int = 0
@@ -18,67 +18,75 @@ class RouletteController: ObservableObject {
     private var spinTimer: Timer?
     private var faces: [DetectedFace] = []
     
-    // 🎲 빠른 자연스러운 룰렛 시스템
-    private let totalSpinDuration: Double = 3.0 // 전체 시간 단축
-    private let phase1Duration: Double = 1.0   // 1단계: 빠른 시작
-    private let phase2Duration: Double = 2.0   // 2단계: 감속  
+    private let totalSpinDuration: Double = 4.5
+    private let phase1Duration: Double = 0.8
+    private let phase2Duration: Double = 2.7
+    private let phase3Duration: Double = 1.0
     
-    // 각 단계별 속도 - 더 빠르게
-    private let phase1Speed: Double = 0.1      // 빠른 시작
-    private let phase2StartSpeed: Double = 0.1 // 감속 시작 속도
-    private let phase2EndSpeed: Double = 0.4   // 마지막 속도 (2배 빠르게)
+    private let phase1Speed: Double = 0.06
+    private let phase2StartSpeed: Double = 0.11
+    private let phase2EndSpeed: Double = 0.16
+    private let phase3StartSpeed: Double = 0.16
+    private let phase3EndSpeed: Double = 0.15 //
     
     @Published var currentPhase: Int = 1
-    @Published var spinStartTime: Date = Date()
+    @Published var tensionLevel: Double = 0.0
+    @Published var spinStartTime: Date = .init()
     
     func startRoulette(with faces: [DetectedFace]) {
         guard faces.count > 1 else {
-            // 얼굴이 1개 이하면 바로 결과 표시
             if let singleFace = faces.first {
-                self.winner = singleFace
+                winner = singleFace
                 SoundManager.shared.playCaughtSound()
             }
             return
         }
         
         self.faces = faces
-        self.isSpinning = true
-        self.winner = nil
-        self.currentHighlightedIndex = 0
-        self.currentPhase = 1
-        self.spinStartTime = Date()
-        self.spinningSpeed = phase1Speed
+        isSpinning = true
+        winner = nil
+        currentHighlightedIndex = 0
+        currentPhase = 1
+        spinStartTime = Date()
+        spinningSpeed = phase1Speed
         
-        print("🎲 룰렛 시작! 2단계 시스템 (총 \(totalSpinDuration)초)")
-        
-        // 룰렛 시작 사운드
         SoundManager.shared.playStartSound()
         
-        // 1단계: 적당히 빠른 시작
         startPhase1()
     }
     
-    // 🎯 1단계: 적당히 빠른 시작
     private func startPhase1() {
-        print("📍 Phase 1: 적당히 빠른 시작 (\(phase1Duration)초)")
         currentPhase = 1
+        tensionLevel = 0.1
         spinningSpeed = phase1Speed
         startSpinTimer()
         
-        // 1단계 → 2단계 전환
         DispatchQueue.main.asyncAfter(deadline: .now() + phase1Duration) { [weak self] in
             self?.startPhase2()
         }
     }
     
-    // 🐌 2단계: 점진적 감속
     private func startPhase2() {
-        print("📍 Phase 2: 점진적 감속 시작 (\(phase2Duration)초)")
+        print("⚡ Phase 2: 좀 느려짐 (\(phase2Duration)초)")
         currentPhase = 2
-        startGradualSlowdown()
+        tensionLevel = 0.5
+        startGradualSlowdown(from: phase2StartSpeed, to: phase2EndSpeed, duration: phase2Duration)
         
-        // 2단계 완료 후 종료
         DispatchQueue.main.asyncAfter(deadline: .now() + phase2Duration) { [weak self] in
+            self?.startPhase3()
+        }
+    }
+    
+    private func startPhase3() {
+        currentPhase = 3
+        tensionLevel = 1.0
+        
+        spinningSpeed = phase3StartSpeed
+        restartSpinTimer()
+        
+        startGradualSlowdownImmediate(from: phase3StartSpeed, to: phase3EndSpeed, duration: phase3Duration)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + phase3Duration) { [weak self] in
             self?.stopRoulette()
         }
     }
@@ -97,46 +105,71 @@ class RouletteController: ObservableObject {
     private func updateHighlight() {
         guard !faces.isEmpty else { return }
         
-        // 다음 얼굴로 이동
         currentHighlightedIndex = (currentHighlightedIndex + 1) % faces.count
         
-        // 단계별 사운드와 햅틱
         switch currentPhase {
         case 1:
-            // 1단계: 적당한 틱
+            
+            SoundManager.shared.playSpinSound()
+            let lightFeedback = UIImpactFeedbackGenerator(style: .light)
+            lightFeedback.impactOccurred()
+        case 2:
+            
             SoundManager.shared.playSpinSound()
             let mediumFeedback = UIImpactFeedbackGenerator(style: .medium)
             mediumFeedback.impactOccurred()
-        case 2:
-            // 2단계: 긴장감 있는 틱
+        case 3:
+            
             SoundManager.shared.playSpinSound()
             let heavyFeedback = UIImpactFeedbackGenerator(style: .heavy)
-            heavyFeedback.impactOccurred()
+            heavyFeedback.impactOccurred(intensity: 1.0)
         default:
             break
         }
     }
     
-    // 🐌 2단계에서 점진적으로 느려지는 타이머
-    private func startGradualSlowdown() {
-        let slowdownSteps = 12 // 12단계로 나누어 자연스럽게 감속
-        let stepDuration = phase2Duration / Double(slowdownSteps)
+    private func startGradualSlowdown(from startSpeed: Double, to endSpeed: Double, duration: Double) {
+        let slowdownSteps = 12
+        let stepDuration = duration / Double(slowdownSteps)
         
         for step in 0..<slowdownSteps {
             let delay = stepDuration * Double(step)
             let progress = Double(step) / Double(slowdownSteps - 1)
             
-            // 자연스러운 ease-out 곡선으로 속도 계산
-            let easeOutProgress = 1 - pow(1 - progress, 1.5)
-            let currentStepSpeed = phase2StartSpeed + (phase2EndSpeed - phase2StartSpeed) * easeOutProgress
+            let easeProgress = 1 - pow(1 - progress, 1.5)
+            let currentStepSpeed = startSpeed + (endSpeed - startSpeed) * easeProgress
             
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-                guard let self = self, self.currentPhase == 2 else { return }
+                guard let self = self, self.isSpinning else { return }
                 
                 self.spinningSpeed = currentStepSpeed
                 self.restartSpinTimer()
                 
-                print("🐌 Step \(step + 1)/\(slowdownSteps): speed = \(String(format: "%.2f", currentStepSpeed))초")
+                print("🎰 Phase \(self.currentPhase) - Step \(step + 1)/\(slowdownSteps): speed = \(String(format: "%.3f", currentStepSpeed))초")
+            }
+        }
+    }
+    
+    private func startGradualSlowdownImmediate(from startSpeed: Double, to endSpeed: Double, duration: Double) {
+        let slowdownSteps = 10
+        let stepDuration = duration / Double(slowdownSteps)
+        
+        for step in 1..<slowdownSteps {
+            let delay = stepDuration * Double(step)
+            let progress = Double(step) / Double(slowdownSteps - 1)
+            
+            let easeProgress = 1 - pow(1 - progress, 1.2)
+            let currentStepSpeed = startSpeed + (endSpeed - startSpeed) * easeProgress
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                guard let self = self, self.isSpinning else { return }
+                
+                self.spinningSpeed = currentStepSpeed
+                self.restartSpinTimer()
+                
+                self.tensionLevel = min(1.0, 0.8 + progress * 0.2)
+                
+                print("🎯 FINAL SELECTION - Step \(step + 1)/\(slowdownSteps): speed = \(String(format: "%.3f", currentStepSpeed))초")
             }
         }
     }
@@ -146,24 +179,19 @@ class RouletteController: ObservableObject {
         spinTimer?.invalidate()
         spinTimer = nil
         
-        // 최종 당첨자 결정 (미리 크롭된 얼굴 이미지 포함!)
         if !faces.isEmpty {
             let winnerIndex = currentHighlightedIndex
             var winnerFace = faces[winnerIndex]
             winnerFace.isWinner = true
-            self.winner = winnerFace
-            
-            print("🏆 Winner selected: Face \(winnerIndex + 1) with croppedImage: \(winnerFace.croppedImage != nil)")
+            winner = winnerFace
         }
         
-        // "걸렸다!" 사운드 (재미있고 임팩트 있게!)
         SoundManager.shared.playCaughtSound()
         
-        // 차분한 햅틱 피드백 (성공이 아닌 선택 느낌)
         let notificationFeedback = UINotificationFeedbackGenerator()
         notificationFeedback.notificationOccurred(.success)
         
-        print("🎯 Winner selected: Face at index \(currentHighlightedIndex)")
+        tensionLevel = 0.0
     }
     
     func reset() {
@@ -174,6 +202,7 @@ class RouletteController: ObservableObject {
         winner = nil
         faces.removeAll()
         currentPhase = 1
+        tensionLevel = 0.0
         spinStartTime = Date()
         spinningSpeed = phase1Speed
     }

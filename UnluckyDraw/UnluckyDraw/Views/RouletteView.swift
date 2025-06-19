@@ -13,16 +13,18 @@ struct RouletteView: View {
     let currentHighlightedIndex: Int
     let isSpinning: Bool
     let currentPhase: Int  // 단계 정보 추가
+    let tensionLevel: Double  // 긴장감 레벨 (0.0 ~ 1.0)
     let onComplete: () -> Void
     
     var body: some View {
         ZStack {
-            // 🌌 룰렛 중에는 전체 화면 어둡게
+            // 🌌 룰렛 중에는 전체 화면 어둡게 - 긴장감에 따라 강도 조절
             if isSpinning {
                 Color.black
-                    .opacity(0.85)
+                    .opacity(0.75 + tensionLevel * 0.15) // 긴장감이 높을수록 더 어둡게
                     .ignoresSafeArea()
                     .animation(.easeInOut(duration: 0.5), value: isSpinning)
+                    .animation(.easeInOut(duration: 0.3), value: tensionLevel)
             }
             
             VStack(spacing: 20) {
@@ -36,13 +38,17 @@ struct RouletteView: View {
                             Text(getPhaseMessage())
                                 .font(.headline)
                                 .foregroundColor(getPhaseColor())
+                                .scaleEffect(currentPhase == 3 ? 1.0 + tensionLevel * 0.1 : 1.0) // 3단계에서 긴장감 효과
                                 .animation(.easeInOut(duration: 0.3), value: currentHighlightedIndex)
+                                .animation(.easeInOut(duration: 0.2), value: tensionLevel)
                         }
                         
                         Text(getPhaseSubMessage())
                             .font(.caption)
                             .foregroundColor(.gray)
+                            .opacity(currentPhase == 3 ? 0.7 + tensionLevel * 0.3 : 1.0) // 3단계에서 점멸
                             .animation(.easeInOut(duration: 0.3), value: currentHighlightedIndex)
+                            .animation(.easeInOut(duration: 0.2), value: tensionLevel)
                     } else {
                         Image(systemName: "target")
                             .font(.system(size: 32))
@@ -68,18 +74,25 @@ struct RouletteView: View {
                             .saturation(0)  // 흑백 처리
                             .brightness(-0.2)
                             .overlay(
-                                // 테두리 효과 - 룰렛 중에만 (레트로 게임 컬러)
+                                // 테두리 효과 - 룰렛 중에만 (긴장감에 따라 강도 조절)
                                 RoundedRectangle(cornerRadius: 16)
                                     .stroke(
                                         LinearGradient(
-                                            colors: [.retroTeal, .retroPurple, .retroMint],
+                                            colors: currentPhase == 3 ? 
+                                                [.retroPink, .retroTeal, .retroPurple] : // 3단계는 더 극적인 색상
+                                                [.retroTeal, .retroPurple, .retroMint],
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
                                         ),
-                                        lineWidth: isSpinning ? 4 : 0
+                                        lineWidth: isSpinning ? 3 + tensionLevel * 3 : 0 // 긴장감에 따라 두께 증가
                                     )
-                                    .shadow(color: .retroTeal.opacity(0.6), radius: isSpinning ? 12 : 0)
+                                    .shadow(
+                                        color: (currentPhase == 3 ? Color.retroPink : Color.retroTeal).opacity(0.4 + tensionLevel * 0.4), 
+                                        radius: isSpinning ? 8 + tensionLevel * 8 : 0 // 긴장감에 따라 그림자 강도 증가
+                                    )
                                     .animation(.easeInOut(duration: 0.3), value: isSpinning)
+                                    .animation(.easeInOut(duration: 0.2), value: tensionLevel)
+                                    .animation(.easeInOut(duration: 0.3), value: currentPhase)
                             )
                         
                         // 🎆 스포트라이트 효과 - 선택된 얼굴만 컬러로 (먼저 배치)
@@ -131,14 +144,31 @@ struct RouletteView: View {
                 
                 Spacer()
                 
-                // Instructions - 단계별 다른 메시지
+                // Instructions - 단계별 다른 메시지 + 긴장감 효과
                 if isSpinning {
-                    Text(getBottomMessage())
-                        .font(.headline)
-                        .foregroundColor(getPhaseColor())
-                        .padding()
-                        .scaleEffect(currentHighlightedIndex % 2 == 0 ? 1.0 : 1.05) // 미세한 움직임
-                        .animation(.easeInOut(duration: 0.1), value: currentHighlightedIndex)
+                    VStack(spacing: 8) {
+                        Text(getBottomMessage())
+                            .font(.headline)
+                            .foregroundColor(getPhaseColor())
+                            .scaleEffect(currentPhase == 3 ? 1.0 + tensionLevel * 0.08 : (currentHighlightedIndex % 2 == 0 ? 1.0 : 1.02))
+                            .animation(.easeInOut(duration: currentPhase == 3 ? 0.15 : 0.1), value: currentHighlightedIndex)
+                            .animation(.easeInOut(duration: 0.2), value: tensionLevel)
+                        
+                        // 3단계에서 긴장감 표시기
+                        if currentPhase == 3 {
+                            HStack(spacing: 4) {
+                                ForEach(0..<5, id: \.self) { index in
+                                    Circle()
+                                        .fill(index < Int(tensionLevel * 5) ? Color.retroPink : Color.gray.opacity(0.3))
+                                        .frame(width: 6, height: 6)
+                                        .scaleEffect(index < Int(tensionLevel * 5) ? 1.2 : 1.0)
+                                        .animation(.easeInOut(duration: 0.2), value: tensionLevel)
+                                }
+                            }
+                            .opacity(0.8)
+                        }
+                    }
+                    .padding()
                 }
             }
             .onChange(of: isSpinning) { _, spinning in
@@ -159,10 +189,18 @@ struct RouletteView: View {
             Image(systemName: "bolt.fill")
                 .font(.title2)
                 .foregroundColor(.retroTeal)
+                .scaleEffect(1.0 + tensionLevel * 0.1)
         case 2:
             Image(systemName: "timer")
                 .font(.title2)
                 .foregroundColor(.retroPink)
+                .scaleEffect(1.0 + tensionLevel * 0.15)
+        case 3:
+            Image(systemName: "target")
+                .font(.title2)
+                .foregroundColor(.retroPink)
+                .scaleEffect(1.0 + tensionLevel * 0.2)
+                .rotationEffect(.degrees(tensionLevel * 10)) // 3단계에서 미세한 회전
         default:
             ProgressView()
                 .scaleEffect(0.8)
@@ -173,9 +211,11 @@ struct RouletteView: View {
     private func getPhaseMessage() -> String {
         switch currentPhase {
         case 1:
-            return "Scanning players!"
+            return "High-Speed Scan!"
         case 2:
-            return "Target locking..."
+            return "Target Acquired..."
+        case 3:
+            return "FINAL SELECTION!"
         default:
             return "Initializing..."
         }
@@ -184,9 +224,11 @@ struct RouletteView: View {
     private func getPhaseSubMessage() -> String {
         switch currentPhase {
         case 1:
-            return "Retro scanner active!"
+            return "Blur-speed detection active"
         case 2:
-            return "System selecting..."
+            return "Narrowing down targets..."
+        case 3:
+            return "Decision moment approaching..."
         default:
             return "Loading game data..."
         }
@@ -195,9 +237,11 @@ struct RouletteView: View {
     private func getBottomMessage() -> String {
         switch currentPhase {
         case 1:
-            return "🕹️ Retro scanner active!"
+            return "⚡ High-speed scanning active!"
         case 2:
-            return "🎯 Target acquired!"
+            return "🎯 Target lock in progress..."
+        case 3:
+            return "💥 FINAL COUNTDOWN!"
         default:
             return "🕹️ System loading..."
         }
@@ -209,6 +253,8 @@ struct RouletteView: View {
             return .retroTeal
         case 2:
             return .retroPink
+        case 3:
+            return .retroPink // 3단계는 더 강렬한 색상
         default:
             return .retroPurple
         }
@@ -278,6 +324,7 @@ struct FixedFrameOverlay: View {
                 color: isHighlighted ? Color.retroTeal.opacity(0.8) : Color.clear,
                 radius: isHighlighted ? 12 : 0
             )
+            .scaleEffect(isHighlighted ? 1.02 : 1.0) // 선택된 얼굴 살짝 확대
             .animation(.easeInOut(duration: 0.15), value: isHighlighted)
     }
 }
@@ -324,7 +371,8 @@ struct SpotlightOverlay: View {
         faces: [],
         currentHighlightedIndex: 0,
         isSpinning: true,
-        currentPhase: 2,  // 미리보기용
+        currentPhase: 3,  // 3단계 미리보기
+        tensionLevel: 0.8, // 높은 긴장감
         onComplete: {}
     )
 }
