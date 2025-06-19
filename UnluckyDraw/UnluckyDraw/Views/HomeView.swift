@@ -68,13 +68,13 @@ struct HomeView: View {
                             }
                         )
                         
-                        // 기존 다른 모드들
-                        ForEach([DrawMode.number, DrawMode.name], id: \.self) { mode in
-                            ModeCard(mode: mode) {
-                                HapticManager.selection()
-                                selectedMode = mode
-                            }
-                        }
+                        // 기존 다른 모드들 - 임시 숨김
+                        // ForEach([DrawMode.number, DrawMode.name], id: \.self) { mode in
+                        //     ModeCard(mode: mode) {
+                        //         HapticManager.selection()
+                        //         selectedMode = mode
+                        //     }
+                        // }
                     }
                     .padding(.horizontal, 20)
                     
@@ -89,17 +89,17 @@ struct HomeView: View {
             }
             .navigationBarHidden(true)
         }
-        .fullScreenCover(item: $selectedMode) { mode in
-            switch mode {
-            case .photo:
-                // 이제 사용하지 않음 - 대신 위의 두 버튼 사용
-                EmptyView()
-            case .number:
-                NumberDrawView()
-            case .name:
-                NameDrawView()
-            }
-        }
+        // .fullScreenCover(item: $selectedMode) { mode in
+        //     switch mode {
+        //     case .photo:
+        //         // 이제 사용하지 않음 - 대신 위의 두 버튼 사용
+        //         EmptyView()
+        //     case .number:
+        //         NumberDrawView()
+        //     case .name:
+        //         NameDrawView()
+        //     }
+        // }
         .fullScreenCover(isPresented: $showingPhotoDrawCamera) {
             PhotoDrawView(initialSourceType: .camera)
         }
@@ -196,54 +196,55 @@ struct ModeCard: View {
     }
 }
 
-// MARK: - Placeholder Views
-struct NumberDrawView: View {
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        VStack {
-            Text("Number Draw")
-                .font(.largeTitle)
-                .padding()
-            
-            Text("Coming Soon!")
-                .font(.headline)
-                .foregroundColor(.gray)
-            
-            Spacer()
-            
-            Button("Back") {
-                dismiss()
-            }
-            .buttonStyle()
-            .padding()
-        }
-    }
-}
+// MARK: - Placeholder Views - 임시 주석 처리
 
-struct NameDrawView: View {
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        VStack {
-            Text("Name Draw")
-                .font(.largeTitle)
-                .padding()
-            
-            Text("Coming Soon!")
-                .font(.headline)
-                .foregroundColor(.gray)
-            
-            Spacer()
-            
-            Button("Back") {
-                dismiss()
-            }
-            .buttonStyle()
-            .padding()
-        }
-    }
-}
+// struct NumberDrawView: View {
+//     @Environment(\.dismiss) private var dismiss
+//     
+//     var body: some View {
+//         VStack {
+//             Text("Number Draw")
+//                 .font(.largeTitle)
+//                 .padding()
+//             
+//             Text("Coming Soon!")
+//                 .font(.headline)
+//                 .foregroundColor(.gray)
+//             
+//             Spacer()
+//             
+//             Button("Back") {
+//                 dismiss()
+//             }
+//             .buttonStyle()
+//             .padding()
+//         }
+//     }
+// }
+// 
+// struct NameDrawView: View {
+//     @Environment(\.dismiss) private var dismiss
+//     
+//     var body: some View {
+//         VStack {
+//             Text("Name Draw")
+//                 .font(.largeTitle)
+//                 .padding()
+//             
+//             Text("Coming Soon!")
+//                 .font(.headline)
+//                 .foregroundColor(.gray)
+//             
+//             Spacer()
+//             
+//             Button("Back") {
+//                 dismiss()
+//             }
+//             .buttonStyle()
+//             .padding()
+//         }
+//     }
+// }
 
 #Preview {
     HomeView()
