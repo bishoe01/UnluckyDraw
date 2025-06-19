@@ -220,7 +220,7 @@ struct LargeWinnerDisplay: View {
                                 RoundedRectangle(cornerRadius: 20)
                                     .stroke(
                                     LinearGradient(
-                                    gradient: Gradient(colors: [.red.opacity(0.7), .orange.opacity(0.6)]),
+                                    gradient: Gradient(colors: [Color(red: 0.7, green: 0.1, blue: 0.1), Color(red: 0.5, green: 0.0, blue: 0.1)]),
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                     ),
@@ -228,12 +228,12 @@ struct LargeWinnerDisplay: View {
                                     )
                                     .opacity(1.0) // 고정된 투명도
                             )
-                            .shadow(color: .red.opacity(0.4), radius: 10)
+                            .shadow(color: Color(red: 0.7, green: 0.1, blue: 0.1).opacity(0.4), radius: 10)
                             .scaleEffect(scale)
                             .overlay(
                                 // 깜박임 효과
                                 RoundedRectangle(cornerRadius: 20)
-                                    .fill(Color.red.opacity(flashOpacity * 0.3))
+                                    .fill(Color(red: 0.7, green: 0.1, blue: 0.1).opacity(flashOpacity * 0.2))
                             )
                         
                         // 재미있는 텍스트 (더 자연스럽게)
@@ -247,12 +247,12 @@ struct LargeWinnerDisplay: View {
                                 Capsule()
                                     .fill(
                                         LinearGradient(
-                                            gradient: Gradient(colors: [.red.opacity(0.8), .orange.opacity(0.7)]),
+                                            gradient: Gradient(colors: [Color(red: 0.6, green: 0.1, blue: 0.1), Color(red: 0.4, green: 0.0, blue: 0.1)]),
                                             startPoint: .leading,
                                             endPoint: .trailing
                                         )
                                     )
-                                    .shadow(color: .red.opacity(0.3), radius: 4)
+                                    .shadow(color: Color(red: 0.6, green: 0.1, blue: 0.1).opacity(0.3), radius: 4)
                             )
                             .scaleEffect(scale)
                     }
@@ -268,7 +268,7 @@ struct LargeWinnerDisplay: View {
                                 VStack {
                                     Image(systemName: "xmark.circle.fill")
                                         .font(.system(size: 80))
-                                        .foregroundColor(.red.opacity(0.7))
+                                        .foregroundColor(Color(red: 0.7, green: 0.1, blue: 0.1))
                                     Text("☠️ Eliminated")
                                         .font(.headline)
                                         .foregroundColor(.gray)
@@ -278,7 +278,7 @@ struct LargeWinnerDisplay: View {
                                 RoundedRectangle(cornerRadius: 20)
                                     .stroke(
                                         LinearGradient(
-                                            gradient: Gradient(colors: [.red.opacity(0.6), .orange.opacity(0.5)]),
+                                            gradient: Gradient(colors: [Color(red: 0.6, green: 0.1, blue: 0.1), Color(red: 0.4, green: 0.0, blue: 0.1)]),
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
                                         ),
@@ -295,8 +295,8 @@ struct LargeWinnerDisplay: View {
                             .padding(.vertical, 8)
                             .background(
                                 Capsule()
-                                    .fill(Color.red.opacity(0.7))
-                                    .shadow(color: .red.opacity(0.3), radius: 4)
+                                    .fill(Color(red: 0.6, green: 0.1, blue: 0.1))
+                                    .shadow(color: Color(red: 0.6, green: 0.1, blue: 0.1).opacity(0.3), radius: 4)
                             )
                             .scaleEffect(scale)
                     }
