@@ -20,7 +20,7 @@ struct ResultView: View {
         VStack(spacing: 0) {
             // Header (임팩트 있고 재미있게!) - 헤더 하나로 통합
             VStack(spacing: 12) {
-                Text("💥")
+                Text("☠️")
                     .font(.system(size: 60))
                     .scaleEffect(showAnimation ? 1.2 : 0.5)
                     .animation(.spring(response: 0.6, dampingFraction: 0.6), value: showAnimation)
@@ -178,7 +178,7 @@ struct ResultView: View {
         // 얼굴 인식 신뢰도와 위치를 기반으로 "불운 점수" 계산
         let confidenceScore = Int(winner.confidence * 50) // 0-50점
         let positionScore = getFacePosition() * 5 // 5-45점
-        let randomBonus = Int.random(in: 1...10) // 1-10점 랜덤 보너스
+        let randomBonus = Int.random(in: 1 ... 10) // 1-10점 랜덤 보너스
         
         return min(100, confidenceScore + positionScore + randomBonus)
     }
@@ -227,7 +227,7 @@ struct LargeWinnerDisplay: View {
                             )
                         
                         // 재미있는 텍스트 (더 자연스럽게)
-                        Text("🎢 THE VICTIM")
+                        Text("☠️ THE VICTIM")
                             .font(.title3)
                             .fontWeight(.black)
                             .foregroundColor(.white)
@@ -277,7 +277,7 @@ struct LargeWinnerDisplay: View {
                             )
                             .scaleEffect(scale)
                         
-                        Text("🎢 THE VICTIM")
+                        Text("☠️ THE VICTIM")
                             .font(.title3)
                             .fontWeight(.black)
                             .foregroundColor(.white)
