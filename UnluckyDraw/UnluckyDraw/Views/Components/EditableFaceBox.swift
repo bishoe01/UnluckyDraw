@@ -11,6 +11,8 @@ struct EditableFaceBox: View {
     let face: EditableFace
     let imageSize: CGSize
     let index: Int  // 얼굴 번호 표시용
+    let offsetX: CGFloat  // ⭐️ 이미지 offset 추가
+    let offsetY: CGFloat  // ⭐️ 이미지 offset 추가
     let onDragChanged: (CGSize) -> Void
     let onDragEnded: () -> Void
     let onDelete: () -> Void
@@ -46,8 +48,8 @@ struct EditableFaceBox: View {
                 )
                 .frame(width: currentBox.width, height: currentBox.height)
                 .position(
-                    x: currentBox.midX,
-                    y: currentBox.midY
+                    x: currentBox.midX + offsetX,
+                    y: currentBox.midY + offsetY
                 )
                 .scaleEffect(face.isDragging ? 1.05 : (face.isHighlighted ? 1.02 : 1.0))
                 .animation(.easeInOut(duration: 0.2), value: face.isDragging)
@@ -72,8 +74,8 @@ struct EditableFaceBox: View {
                         .shadow(color: Color.black.opacity(0.3), radius: 2, x: 1, y: 1)
                 )
                 .position(
-                    x: currentBox.minX + (badgeSize + 8) / 2 + 4,
-                    y: currentBox.minY + (badgeSize + 8) / 2 + 4
+                    x: currentBox.minX + (badgeSize + 8) / 2 + 4 + offsetX,
+                    y: currentBox.minY + (badgeSize + 8) / 2 + 4 + offsetY
                 )
             
             // Delete Button (조건부 표시)
@@ -92,8 +94,8 @@ struct EditableFaceBox: View {
                         )
                 }
                 .position(
-                    x: currentBox.maxX - 10,
-                    y: currentBox.minY + 10
+                    x: currentBox.maxX - 10 + offsetX,
+                    y: currentBox.minY + 10 + offsetY
                 )
                 .scaleEffect(showDeleteButton ? 1.1 : 1.0)
                 .animation(.easeInOut(duration: 0.2), value: showDeleteButton)
@@ -110,8 +112,8 @@ struct EditableFaceBox: View {
                             .frame(width: 14, height: 14)
                     )
                     .position(
-                        x: currentBox.maxX - 10,
-                        y: currentBox.maxY - 10
+                        x: currentBox.maxX - 10 + offsetX,
+                        y: currentBox.maxY - 10 + offsetY
                     )
             }
         }
@@ -340,6 +342,8 @@ struct EditableFaceBox_Previews: PreviewProvider {
                 face: sampleFace,
                 imageSize: CGSize(width: 300, height: 400),
                 index: 0,
+                offsetX: 0,  // ⭐️ offset 추가
+                offsetY: 0,  // ⭐️ offset 추가
                 onDragChanged: { _ in },
                 onDragEnded: { },
                 onDelete: { }

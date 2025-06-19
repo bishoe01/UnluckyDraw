@@ -247,6 +247,18 @@ struct ImagePicker: UIViewControllerRepresentable {
                 print("🖼️ Edited image received from gallery:")
                 print("  Size: \(editedImage.size)")
                 print("  Orientation: \(editedImage.imageOrientation.rawValue)")
+                
+                // ⭐️ 크롭 정보 추가 로그
+                if let originalImage = info[.originalImage] as? UIImage {
+                    print("🖼️ Original vs Edited comparison:")
+                    print("  Original size: \(originalImage.size)")
+                    print("  Edited size: \(editedImage.size)")
+                    print("  Scale factor: \(editedImage.size.width / originalImage.size.width)")
+                    
+                    if let cropRect = info[.cropRect] as? CGRect {
+                        print("  Crop rect: \(cropRect)")
+                    }
+                }
             } else if let originalImage = info[.originalImage] as? UIImage {
                 finalImage = originalImage
                 print("🖼️ Original image received:")

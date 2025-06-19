@@ -42,19 +42,25 @@ struct FaceReviewView: View {
                         .aspectRatio(contentMode: .fit)
                         .cornerRadius(12)
                         .onAppear {
-                            calculateImageSize(geometry: geometry)
+                            updateImageSizeIfNeeded(geometry: geometry)
                         }
                         .onChange(of: geometry.size) { _, _ in
-                            calculateImageSize(geometry: geometry)
+                            updateImageSizeIfNeeded(geometry: geometry)
                         }
                     
                     // Editable Face Boxes
                     if imageSize != .zero {
+                        let calculatedImageSize = calculateImageSize(geometry: geometry)
+                        let offsetX = (geometry.size.width - calculatedImageSize.width) / 2
+                        let offsetY = (geometry.size.height - calculatedImageSize.height) / 2
+                        
                         ForEach(Array(faceDetectionController.editableFaces.enumerated()), id: \.element.id) { index, face in
                             EditableFaceBox(
                                 face: face,
-                                imageSize: imageSize,
+                                imageSize: calculatedImageSize,
                                 index: index,  // 얼굴 번호 전달
+                                offsetX: offsetX,  // ⭐️ offset 추가
+                                offsetY: offsetY,  // ⭐️ offset 추가
                                 onDragChanged: { dragOffset in
                                     faceDetectionController.updateFacePosition(
                                         id: face.id,
@@ -97,7 +103,7 @@ struct FaceReviewView: View {
         }
     }
     
-    private func calculateImageSize(geometry: GeometryProxy) {
+    private func calculateImageSize(geometry: GeometryProxy) -> CGSize {
         let maxWidth = geometry.size.width
         let maxHeight = geometry.size.height
         
@@ -106,16 +112,20 @@ struct FaceReviewView: View {
         
         let newImageSize: CGSize
         if imageAspectRatio > containerAspectRatio {
-            // Image is wider - fit to width
             let width = maxWidth
             let height = width / imageAspectRatio
             newImageSize = CGSize(width: width, height: height)
         } else {
-            // Image is taller - fit to height
             let height = maxHeight
             let width = height * imageAspectRatio
             newImageSize = CGSize(width: width, height: height)
         }
+        
+        return newImageSize
+    }
+    
+    private func updateImageSizeIfNeeded(geometry: GeometryProxy) {
+        let newImageSize = calculateImageSize(geometry: geometry)
         
         // 이미지 크기가 변경되었을 때만 업데이트
         if imageSize != newImageSize {

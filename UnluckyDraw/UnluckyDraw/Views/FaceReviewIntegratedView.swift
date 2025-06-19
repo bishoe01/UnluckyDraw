@@ -46,10 +46,10 @@ struct FaceReviewIntegratedView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity) // 중앙 정렬을 위한 프레임
                         .cornerRadius(12)
                         .onAppear {
-                            calculateImageSize(geometry: geometry)
+                            updateImageSizeIfNeeded(geometry: geometry)
                         }
                         .onChange(of: geometry.size) { _, _ in
-                            calculateImageSize(geometry: geometry)
+                            updateImageSizeIfNeeded(geometry: geometry)
                         }
                     
                     // Processing Overlay (얼굴 인식 중일 때) - 중앙 정렬 추가
@@ -73,11 +73,17 @@ struct FaceReviewIntegratedView: View {
                     
                     // Editable Face Boxes (인식 완료 후)
                     if !faceDetectionController.isProcessing && imageSize != .zero {
+                        let calculatedImageSize = calculateImageSize(geometry: geometry)
+                        let offsetX = (geometry.size.width - calculatedImageSize.width) / 2
+                        let offsetY = (geometry.size.height - calculatedImageSize.height) / 2
+                        
                         ForEach(Array(faceDetectionController.editableFaces.enumerated()), id: \.element.id) { index, face in
                             EditableFaceBox(
                                 face: face,
-                                imageSize: imageSize,
+                                imageSize: calculatedImageSize,
                                 index: index,
+                                offsetX: offsetX,
+                                offsetY: offsetY,
                                 onDragChanged: { dragOffset in
                                     faceDetectionController.updateFacePosition(
                                         id: face.id,
@@ -126,7 +132,7 @@ struct FaceReviewIntegratedView: View {
     
     // MARK: - Functions
     
-    private func calculateImageSize(geometry: GeometryProxy) {
+    private func calculateImageSize(geometry: GeometryProxy) -> CGSize {
         let maxWidth = geometry.size.width
         let maxHeight = geometry.size.height
         
@@ -144,13 +150,28 @@ struct FaceReviewIntegratedView: View {
             newImageSize = CGSize(width: width, height: height)
         }
         
+        return newImageSize
+    }
+    
+    private func updateImageSizeIfNeeded(geometry: GeometryProxy) {
+        let newImageSize = calculateImageSize(geometry: geometry)
+        
         if imageSize != newImageSize {
             imageSize = newImageSize
+            
+            // ⭐️ 디버깅 로그 추가
+            print("📊 FaceReviewIntegratedView - Image size changed:")
+            print("  Original image: \(image.size)")
+            print("  Container: \(geometry.size)")
+            print("  Calculated display: \(newImageSize)")
+            print("  Image aspect: \(String(format: "%.3f", image.size.width / image.size.height))")
+            print("  Container aspect: \(String(format: "%.3f", geometry.size.width / geometry.size.height))")
             
             // 얼굴 인식이 완료되었고 editableFaces가 비어있다면 변환
             if !faceDetectionController.isProcessing && 
                !faceDetectionController.detectedFaces.isEmpty && 
                faceDetectionController.editableFaces.isEmpty {
+                print("🔄 Converting detected faces to editable faces...")
                 faceDetectionController.convertToEditableFaces(imageSize: newImageSize)
             }
         }

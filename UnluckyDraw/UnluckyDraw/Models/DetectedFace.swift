@@ -32,15 +32,38 @@ struct DetectedFace: Identifiable, Equatable {
     // 룰렛 효과를 위한 선택 상태
     var isHighlighted: Bool = false
     
-    // ⭐️ 디스플레이용 좌표 변환 (Vision → SwiftUI)
+    // ⭐️ 디스플레이용 좌표 변환 (Vision → SwiftUI) - 완전히 수정된 버전
     func displayBoundingBox(for imageSize: CGSize) -> CGRect {
-        // Vision 좌표계 (좌하단 원점) → SwiftUI 좌표계 (좌상단 원점)
-        return CGRect(
-            x: boundingBox.minX * imageSize.width,
-            y: (1.0 - boundingBox.maxY) * imageSize.height,
-            width: boundingBox.width * imageSize.width,
-            height: boundingBox.height * imageSize.height
+        // Vision 좌표계에서는 Y=0이 이미지 하단, Y=1이 상단
+        // SwiftUI에서는 Y=0이 이미지 상단, Y=height가 하단
+        
+        let visionX = boundingBox.origin.x      // Vision X (왼쪽 끝)
+        let visionY = boundingBox.origin.y      // Vision Y (아래쪽 끝)
+        let visionWidth = boundingBox.width
+        let visionHeight = boundingBox.height
+        
+        // SwiftUI 좌표로 변환
+        let swiftUIX = visionX * imageSize.width
+        let swiftUIY = (1.0 - visionY - visionHeight) * imageSize.height  // Y축 변환
+        let swiftUIWidth = visionWidth * imageSize.width
+        let swiftUIHeight = visionHeight * imageSize.height
+        
+        let convertedBox = CGRect(
+            x: swiftUIX,
+            y: swiftUIY,
+            width: swiftUIWidth,
+            height: swiftUIHeight
         )
+        
+        print("📊 Face displayBoundingBox conversion (FIXED):")
+        print("  Vision box: \(boundingBox)")
+        print("  Vision bottom-left: (\(visionX), \(visionY))")
+        print("  Vision top-right: (\(visionX + visionWidth), \(visionY + visionHeight))")
+        print("  SwiftUI top-left: (\(swiftUIX), \(swiftUIY))")
+        print("  Image size: \(imageSize)")
+        print("  Final box: \(convertedBox)")
+        
+        return convertedBox
     }
     
     static func == (lhs: DetectedFace, rhs: DetectedFace) -> Bool {
