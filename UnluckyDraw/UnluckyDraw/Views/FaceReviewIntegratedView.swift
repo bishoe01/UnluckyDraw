@@ -16,25 +16,26 @@ struct FaceReviewIntegratedView: View {
     
     @State private var imageSize: CGSize = .zero
     @State private var showingAddConfirmation = false
-    @State private var isQuickAddMode = false
-    @State private var quickAddCount = 0
-    
-    private let maxQuickAdd = 5
     
     var body: some View {
         VStack(spacing: 20) {
-            // Header - 얼굴 인식 상태 + 검수 기능
-            IntegratedHeaderView(
-                isProcessing: faceDetectionController.isProcessing,
-                error: faceDetectionController.error,
-                faceCount: faceDetectionController.editableFaces.count,
-                isQuickAddMode: isQuickAddMode,
-                quickAddCount: quickAddCount,
-                maxQuickAdd: maxQuickAdd,
-                onAddFace: addNewFace,
-                onToggleQuickAdd: toggleQuickAddMode,
-                onBack: onBack
-            )
+            // Found People Count - 강조 표시
+            if !faceDetectionController.isProcessing && faceDetectionController.error == nil {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.winnerGreen)
+                        .font(.title2)
+                    
+                    Text("Found \(faceDetectionController.editableFaces.count) \(faceDetectionController.editableFaces.count == 1 ? "person" : "people")")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.darkGray)
+                    
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.top, 10)
+            }
             
             // Main Content - 이미지와 편집 가능한 얼굴 박스들
             GeometryReader { geometry in
@@ -159,6 +160,9 @@ struct FaceReviewIntegratedView: View {
         if imageSize != newImageSize {
             imageSize = newImageSize
             
+            // ⭐️ FaceDetectionController의 currentImageSize도 업데이트
+            faceDetectionController.currentImageSize = newImageSize
+            
             // ⭐️ 디버깅 로그 추가
             print("📊 FaceReviewIntegratedView - Image size changed:")
             print("  Original image: \(image.size)")
@@ -181,6 +185,11 @@ struct FaceReviewIntegratedView: View {
     private func setupIntegratedMode() {
         print("🔍 Setting up integrated face detection and review mode")
         
+        // ⭐️ FaceDetectionController의 currentImageSize 업데이트
+        if imageSize != .zero {
+            faceDetectionController.currentImageSize = imageSize
+        }
+        
         // 이미지 크기가 설정되어 있고 얼굴 인식이 완료되었다면 변환
         if imageSize != .zero && !faceDetectionController.detectedFaces.isEmpty && faceDetectionController.editableFaces.isEmpty {
             faceDetectionController.convertToEditableFaces(imageSize: imageSize)
@@ -189,30 +198,10 @@ struct FaceReviewIntegratedView: View {
     
     private func addNewFace() {
         HapticManager.impact(.medium)
-        
-        if isQuickAddMode {
-            faceDetectionController.addNewFace()
-            quickAddCount += 1
-            
-            if quickAddCount >= maxQuickAdd {
-                toggleQuickAddMode()
-            }
-        } else {
-            showingAddConfirmation = true
-        }
+        showingAddConfirmation = true
     }
     
-    private func toggleQuickAddMode() {
-        HapticManager.impact(.heavy)
-        isQuickAddMode.toggle()
-        
-        if isQuickAddMode {
-            quickAddCount = 0
-            print("🚀 Quick add mode activated")
-        } else {
-            print("🚀 Quick add mode deactivated")
-        }
-    }
+
     
     private func deleteFace(_ face: EditableFace) {
         HapticManager.impact(.medium)
@@ -244,143 +233,7 @@ struct FaceReviewIntegratedView: View {
     }
 }
 
-// MARK: - Integrated Header View
 
-struct IntegratedHeaderView: View {
-    let isProcessing: Bool
-    let error: FaceDetectionController.FaceDetectionError?
-    let faceCount: Int
-    let isQuickAddMode: Bool
-    let quickAddCount: Int
-    let maxQuickAdd: Int
-    let onAddFace: () -> Void
-    let onToggleQuickAdd: () -> Void
-    let onBack: () -> Void
-    
-    var body: some View {
-        VStack(spacing: 12) {
-            // Top Row - Navigation and Quick Mode Toggle
-//            HStack {
-//                Button(action: onBack) {
-//                    Image(systemName: "chevron.left")
-//                        .font(.title2)
-//                        .foregroundColor(.darkGray)
-//                }
-//
-//                Spacer()
-//
-//                // Title
-//                Text("Face Detection & Review")
-//                    .font(.headline)
-//                    .fontWeight(.semibold)
-//                    .foregroundColor(.darkGray)
-//
-//                Spacer()
-//
-//                // Quick Add Toggle (얼굴 인식 완료 후에만 표시)
-//                if !isProcessing && error == nil {
-//                    Button(action: onToggleQuickAdd) {
-//                        HStack(spacing: 6) {
-//                            Image(systemName: isQuickAddMode ? "bolt.fill" : "bolt")
-//                                .font(.caption)
-//                            Text(isQuickAddMode ? "Quick" : "Quick")
-//                                .font(.caption2)
-//                                .fontWeight(.semibold)
-//                        }
-//                        .foregroundColor(isQuickAddMode ? .white : .primaryRed)
-//                        .padding(.horizontal, 8)
-//                        .padding(.vertical, 4)
-//                        .background(
-//                            RoundedRectangle(cornerRadius: 10)
-//                                .fill(isQuickAddMode ? Color.primaryRed : Color.clear)
-//                                .stroke(Color.primaryRed, lineWidth: 1)
-//                        )
-//                    }
-//                }
-//            }
-            
-            // Status Section
-            if isProcessing {
-                HStack(spacing: 12) {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                    Text("Analyzing faces in your photo...")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                }
-            } else if let error = error {
-            } else {
-                // Success State
-                HStack {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.winnerGreen)
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Found \(faceCount) \(faceCount == 1 ? "person" : "people")")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.darkGray)
-                        
-                        Text(statusMessage)
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-                    
-                    Spacer()
-                    
-                    // Add Button
-                    Button(action: onAddFace) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(.primaryRed)
-                            .scaleEffect(isQuickAddMode ? 1.1 : 1.0)
-                            .animation(.easeInOut(duration: 0.2), value: isQuickAddMode)
-                    }
-                }
-            }
-            
-            // Quick Add Progress
-            if isQuickAddMode && !isProcessing && error == nil {
-                HStack {
-                    Text("Quick Add Progress:")
-                        .font(.caption2)
-                        .foregroundColor(.gray)
-                    
-                    Spacer()
-                    
-                    Text("\(quickAddCount)/\(maxQuickAdd)")
-                        .font(.caption2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.primaryRed)
-                }
-                .transition(.opacity.combined(with: .move(edge: .top)))
-                .animation(.easeInOut(duration: 0.3), value: isQuickAddMode)
-            }
-        }
-        .padding(.horizontal)
-    }
-    
-    private func errorDescription(_ error: FaceDetectionController.FaceDetectionError) -> String {
-        switch error {
-        case .noFacesDetected:
-            return "No faces detected automatically"
-        case .processingFailed:
-            return "Face detection failed"
-        case .invalidImage:
-            return "Invalid image"
-        }
-    }
-    
-    private var statusMessage: String {
-        if faceCount == 0 {
-            return "Tap + to add people manually"
-        } else if isQuickAddMode {
-            return "Tap + to quickly add more (\(maxQuickAdd - quickAddCount) left)"
-        } else {
-            return "Drag boxes to adjust • Tap + to add more • Tap × to remove"
-        }
-    }
-}
 
 // MARK: - Integrated Bottom Actions View
 
@@ -448,28 +301,13 @@ struct IntegratedBottomActionsView: View {
             // Normal State - 기존 레이아웃 유지
             VStack(spacing: 8) {
                 if isProcessing {
-                    // Processing State
+                    // Processing State - 간단하게
                     VStack(spacing: 8) {
-                        Text("Please wait while we detect faces...")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                            .multilineTextAlignment(.center)
+                        // 프로세싱 중에는 버튼 숨김
                     }
                 } else {
-                    // Success State
+                    // Success State - 텍스트 제거하고 버튼만
                     VStack(spacing: 12) {
-                        if faceCount > 0 {
-                            Text("Perfect! Ready to start the draw.")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                                .multilineTextAlignment(.center)
-                        } else {
-                            // 0명인 경우에도 수동 추가 유도
-                            Text("Add people manually to get started.")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                                .multilineTextAlignment(.center)
-                        }
                         
                         HStack(spacing: 16) {
                             // Add More Button (always visible)
