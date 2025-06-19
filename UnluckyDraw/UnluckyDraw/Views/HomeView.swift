@@ -39,7 +39,7 @@ struct HomeView: View {
                             .fontWeight(.bold)
                             .foregroundColor(.darkGray)
                         
-                        Text("Who's the unlucky one? 🎯")
+                        Text("Who's the unlucky one? 🎰")
                             .font(.headline)
                             .foregroundColor(.gray)
                     }
@@ -52,7 +52,7 @@ struct HomeView: View {
                             title: "Take New Photo",
                             description: "Capture a group photo with your camera",
                             icon: "camera.fill",
-                            gradientColors: [Color.primaryRed, Color.primaryOrange],
+                            gradientColors: [Color(red: 0.9, green: 0.2, blue: 0.3), Color(red: 0.7, green: 0.1, blue: 0.2)],
                             action: {
                                 HapticManager.selection()
                                 showingPhotoDrawCamera = true
@@ -63,8 +63,8 @@ struct HomeView: View {
                         EnhancedPhotoCard(
                             title: "Choose from Gallery",
                             description: "Select an existing photo from your library",
-                            icon: "photo.fill.on.rectangle.fill",
-                            gradientColors: [Color.primaryOrange, Color.warningYellow],
+                            icon: "photo.on.rectangle.angled",
+                            gradientColors: [Color(red: 0.2, green: 0.6, blue: 0.9), Color(red: 0.1, green: 0.4, blue: 0.7)],
                             action: {
                                 HapticManager.selection()
                                 showingPhotoDrawGallery = true
@@ -76,12 +76,14 @@ struct HomeView: View {
                     Spacer()
                     
                     // Footer
-                    Text("Pick your photo source to start the unlucky draw!")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 40)
-                        .padding(.bottom, 20)
+                    HStack(spacing: 4) {
+                        Text("🎲 Roll the dice and find the unlucky one!")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal, 40)
+                    .padding(.bottom, 20)
                 }
             }
             .navigationBarHidden(true)
@@ -132,7 +134,7 @@ struct EnhancedPhotoCard: View {
             VStack(spacing: 20) {
                 // 아이콘 섹션
                 ZStack {
-                    // 배경 원
+                    // 배경 원 - 아케이드 스타일
                     Circle()
                         .fill(
                             LinearGradient(
@@ -142,16 +144,21 @@ struct EnhancedPhotoCard: View {
                             )
                         )
                         .frame(width: 80, height: 80)
-                        .shadow(color: gradientColors.first?.opacity(0.3) ?? .clear, radius: 10, x: 0, y: 5)
+                        .overlay(
+                            Circle()
+                                .stroke(Color.white.opacity(0.3), lineWidth: 2)
+                        )
+                        .shadow(color: gradientColors.first?.opacity(0.4) ?? .clear, radius: 12, x: 0, y: 6)
                     
                     // 아이콘
                     Image(systemName: icon)
-                        .font(.system(size: 36, weight: .semibold))
+                        .font(.system(size: 36, weight: .bold))
                         .foregroundColor(.white)
+                        .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
                 }
                 
                 // 텍스트 섹션
-                VStack(spacing: 8) {
+                VStack(spacing: 12) {
                     Text(title)
                         .font(.title2)
                         .fontWeight(.bold)
@@ -164,30 +171,32 @@ struct EnhancedPhotoCard: View {
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                 }
-                
-                // 화살표 인디케이터
-                HStack {
-                    Spacer()
-                    Image(systemName: "arrow.right.circle.fill")
-                        .font(.title2)
-                        .foregroundColor(gradientColors.first ?? .primaryRed)
-                    Spacer()
-                }
             }
-            .padding(.vertical, 30)
-            .padding(.horizontal, 24)
+            .padding(.vertical, 32)
+            .padding(.horizontal, 28)
             .background(
                 RoundedRectangle(cornerRadius: 20)
                     .fill(Color.white)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [gradientColors.first?.opacity(0.3) ?? .clear, .clear]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    )
                     .shadow(
-                        color: Color.black.opacity(isPressed ? 0.15 : 0.08),
-                        radius: isPressed ? 8 : 15,
+                        color: Color.black.opacity(isPressed ? 0.2 : 0.1),
+                        radius: isPressed ? 8 : 16,
                         x: 0,
-                        y: isPressed ? 3 : 8
+                        y: isPressed ? 4 : 8
                     )
             )
-            .scaleEffect(isPressed ? 0.98 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: isPressed)
+            .scaleEffect(isPressed ? 0.97 : 1.0)
+            .animation(.easeInOut(duration: 0.15), value: isPressed)
         }
         .buttonStyle(PlainButtonStyle())
     }
