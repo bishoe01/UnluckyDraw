@@ -6,20 +6,23 @@
 //
 
 import SwiftUI
+import PhotosUI
 
 struct PhotoDrawView: View {
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var cameraManager = CameraManager()
+    @StateObject private var imageSourceManager = ImageSourceManager()
     @StateObject private var faceDetectionController = FaceDetectionController()
     @StateObject private var rouletteController = RouletteController()
     
-    @State private var currentStep: PhotoDrawStep = .instruction
+    @State private var currentStep: PhotoDrawStep = .sourceSelection
+    @State private var selectedSourceType: UIImagePickerController.SourceType = .camera
     @State private var showingResult = false
     
     enum PhotoDrawStep {
-        case instruction
-        case camera
-        case faceReviewIntegrated  // 🆕 얼굴인식+검수 통합
+        case sourceSelection       // 🆕 이미지 소스 선택 (카메라 vs 갤러리)
+        case instruction          // 카메라용 지시사항
+        case imageCapture         // 카메라 또는 갤러리
+        case faceReviewIntegrated // 얼굴인식+검수 통합
         case roulette
         case result
     }
@@ -57,26 +60,39 @@ struct PhotoDrawView: View {
                     
                     // Main Content
                     switch currentStep {
+                    case .sourceSelection:
+                        ImageSourceSelectionView(
+                            onCameraSelected: {
+                                selectedSourceType = .camera
+                                proceedToInstruction()
+                            },
+                            onGallerySelected: {
+                                selectedSourceType = .photoLibrary
+                                proceedToImageCapture()
+                            }
+                        )
+                        
                     case .instruction:
                         InstructionView {
-                            proceedToCamera()
+                            proceedToImageCapture()
                         }
                         
-                    case .camera:
+                    case .imageCapture:
                         ZStack {
                             Color.black.ignoresSafeArea()
                             
-                            if cameraManager.isPermissionGranted {
-                                // 카메라 즉시 표시
+                            if imageSourceManager.isPermissionGranted {
+                                // 이미지 소스 즉시 표시
                                 ImagePicker(
-                                    selectedImage: $cameraManager.capturedImage,
-                                    isPresented: $cameraManager.showCamera,
-                                    sourceType: .camera
+                                    selectedImage: $imageSourceManager.selectedImage,
+                                    isPresented: $imageSourceManager.showImagePicker,
+                                    sourceType: selectedSourceType
                                 )
                                 .onAppear {
-                                    print("📷 Camera view appeared, opening camera immediately")
-                                    if !cameraManager.showCamera {
-                                        cameraManager.showCamera = true
+                                    let sourceTypeName = selectedSourceType == .camera ? "Camera" : "Gallery"
+                                    print("📷 \(sourceTypeName) view appeared, opening \(sourceTypeName) immediately")
+                                    if !imageSourceManager.showImagePicker {
+                                        imageSourceManager.presentImageSource(selectedSourceType)
                                     }
                                 }
                             } else {
@@ -85,12 +101,16 @@ struct PhotoDrawView: View {
                                         .font(.system(size: 50))
                                         .foregroundColor(.white)
                                     
-                                    Text("Camera Permission Required")
+                                    Text("\(selectedSourceType == .camera ? "Camera" : "Photo Library") Permission Required")
                                         .font(.headline)
                                         .foregroundColor(.white)
                                     
                                     Button("Grant Permission") {
-                                        cameraManager.checkCameraPermission()
+                                        if selectedSourceType == .camera {
+                                            imageSourceManager.checkCameraPermission()
+                                        } else {
+                                            imageSourceManager.checkPhotoLibraryPermission()
+                                        }
                                     }
                                     .foregroundColor(.primaryRed)
                                     .padding()
@@ -101,7 +121,7 @@ struct PhotoDrawView: View {
                         }
                         
                     case .faceReviewIntegrated:  // 🆕 얼굴인식+검수 통합 페이지
-                        if let image = cameraManager.capturedImage {
+                        if let image = imageSourceManager.selectedImage {
                             FaceReviewIntegratedView(
                                 image: image,
                                 faceDetectionController: faceDetectionController,
@@ -109,7 +129,7 @@ struct PhotoDrawView: View {
                                     proceedToRoulette()
                                 },
                                 onBack: {
-                                    currentStep = .camera
+                                    currentStep = .imageCapture
                                 },
                                 onRetakePhoto: {
                                     retakePhoto() // 새로운 콜백 추가
@@ -124,7 +144,7 @@ struct PhotoDrawView: View {
                         }
                         
                     case .roulette:
-                        if let image = cameraManager.capturedImage {
+                        if let image = imageSourceManager.selectedImage {
                             RouletteView(
                                 image: image,
                                 faces: faceDetectionController.detectedFaces,
@@ -141,7 +161,7 @@ struct PhotoDrawView: View {
                         }
                         
                     case .result:
-                        if let image = cameraManager.capturedImage,
+                        if let image = imageSourceManager.selectedImage,
                            let winner = rouletteController.winner
                         {
                             ResultView(
@@ -159,7 +179,7 @@ struct PhotoDrawView: View {
             }
         }
         .navigationBarHidden(true)
-        .onChange(of: cameraManager.capturedImage) { _, newImage in
+        .onChange(of: imageSourceManager.selectedImage) { _, newImage in
             print("📷 Image capture detected: \(newImage != nil ? "SUCCESS" : "FAILED")")
             if newImage != nil {
                 print("🔄 Transitioning to integrated face review immediately")
@@ -184,22 +204,30 @@ struct PhotoDrawView: View {
     
     private var stepDescription: String {
         switch currentStep {
+        case .sourceSelection:
+            return "1/5"
         case .instruction:
-            return "1/4"
-        case .camera:
-            return "2/4"
+            return "2/5"
+        case .imageCapture:
+            return "3/5"
         case .faceReviewIntegrated:
-            return "3/4"  // 🆕 통합된 단계
+            return "4/5"
         case .roulette:
-            return "4/4"
+            return "5/5"
         case .result:
             return ""
         }
     }
     
-    private func proceedToCamera() {
-        print("📷 User requested camera")
-        currentStep = .camera
+    private func proceedToInstruction() {
+        print("📝 User selected camera - showing instructions")
+        currentStep = .instruction
+    }
+    
+    private func proceedToImageCapture() {
+        let sourceTypeName = selectedSourceType == .camera ? "Camera" : "Gallery"
+        print("📷 User proceeding to \(sourceTypeName)")
+        currentStep = .imageCapture
     }
     
     private func proceedToRoulette() {
@@ -223,31 +251,32 @@ struct PhotoDrawView: View {
     
     private func resetAndStart() {
         print("🔄 Resetting app state")
-        cameraManager.capturedImage = nil
+        imageSourceManager.selectedImage = nil
         faceDetectionController.clearResults()
         rouletteController.reset()
-        currentStep = .instruction
+        currentStep = .sourceSelection
         print("✅ App state reset completed")
     }
     
     private func retakePhoto() {
-        print("📷 Retaking photo - clearing current image and going back to camera")
+        let sourceTypeName = selectedSourceType == .camera ? "camera" : "gallery"
+        print("📷 Retaking photo - clearing current image and going back to \(sourceTypeName)")
         
         // 현재 이미지와 얼굴 인식 결과 초기화
-        cameraManager.capturedImage = nil
+        imageSourceManager.selectedImage = nil
         faceDetectionController.clearResults()
         
-        // 카메라 단계로 돌아가기
+        // 이미지 캡처 단계로 돌아가기
         withAnimation(.easeInOut(duration: 0.3)) {
-            currentStep = .camera
+            currentStep = .imageCapture
         }
         
-        // 카메라 다시 열기
+        // 이미지 피커 다시 열기
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.cameraManager.showCamera = true
+            self.imageSourceManager.presentImageSource(self.selectedSourceType)
         }
         
-        print("✅ Successfully returned to camera for retake")
+        print("✅ Successfully returned to \(sourceTypeName) for retake")
     }
 }
 
@@ -328,6 +357,118 @@ struct InstructionRow: View {
             
             Spacer()
         }
+    }
+}
+
+// MARK: - Image Source Selection View
+
+struct ImageSourceSelectionView: View {
+    let onCameraSelected: () -> Void
+    let onGallerySelected: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 30) {
+            Spacer()
+            
+            // Icon
+            Image(systemName: "photo.on.rectangle.angled")
+                .font(.system(size: 80))
+                .foregroundColor(.primaryRed)
+            
+            // Title
+            VStack(spacing: 16) {
+                Text("Choose Photo Source")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(.darkGray)
+                
+                Text("How would you like to get your photo?")
+                    .font(.body)
+                    .foregroundColor(.gray)
+                    .multilineTextAlignment(.center)
+            }
+            
+            // Options
+            VStack(spacing: 16) {
+                // Camera Option
+                Button(action: onCameraSelected) {
+                    HStack(spacing: 16) {
+                        Image(systemName: "camera.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(.white)
+                            .frame(width: 50, height: 50)
+                            .background(Color.primaryRed)
+                            .cornerRadius(12)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Take New Photo")
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.darkGray)
+                            
+                            Text("Use camera to capture a group photo")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.gray)
+                    }
+                    .padding(20)
+                    .background(Color.white)
+                    .cornerRadius(16)
+                    .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
+                }
+                .buttonStyle(PlainButtonStyle())
+                
+                // Gallery Option
+                Button(action: onGallerySelected) {
+                    HStack(spacing: 16) {
+                        Image(systemName: "photo.fill.on.rectangle.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(.white)
+                            .frame(width: 50, height: 50)
+                            .background(Color.primaryOrange)
+                            .cornerRadius(12)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Choose from Gallery")
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.darkGray)
+                            
+                            Text("Select an existing photo from your gallery")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.gray)
+                    }
+                    .padding(20)
+                    .background(Color.white)
+                    .cornerRadius(16)
+                    .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            .padding(.horizontal, 20)
+            
+            Spacer()
+            
+            // Footer
+            Text("Both options will use the same drawing process")
+                .font(.caption)
+                .foregroundColor(.gray)
+                .padding(.bottom, 30)
+        }
+        .padding(.horizontal, 30)
     }
 }
 

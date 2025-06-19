@@ -1,5 +1,5 @@
 //
-//  CameraManager.swift
+//  ImageSourceManager.swift (formerly CameraManager.swift)
 //  UnluckyDraw
 //
 //  Created on 2025-06-16
@@ -8,57 +8,127 @@
 import Foundation
 import AVFoundation
 import UIKit
+import Photos
 
-class CameraManager: NSObject, ObservableObject {
-    @Published var isPermissionGranted = false
-    @Published var capturedImage: UIImage?
-    @Published var showCamera = false
+class ImageSourceManager: NSObject, ObservableObject {
+    @Published var isCameraPermissionGranted = false
+    @Published var isPhotoLibraryPermissionGranted = false
+    @Published var selectedImage: UIImage?
+    @Published var showImagePicker = false
+    @Published var imageSourceType: UIImagePickerController.SourceType = .camera
     
     override init() {
         super.init()
         checkCameraPermission()
+        checkPhotoLibraryPermission()
     }
     
     func checkCameraPermission() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
-            isPermissionGranted = true
+            isCameraPermissionGranted = true
         case .notDetermined:
             requestCameraPermission()
         case .denied, .restricted:
-            isPermissionGranted = false
+            isCameraPermissionGranted = false
         @unknown default:
-            isPermissionGranted = false
+            isCameraPermissionGranted = false
+        }
+    }
+    
+    func checkPhotoLibraryPermission() {
+        switch PHPhotoLibrary.authorizationStatus(for: .readWrite) {
+        case .authorized, .limited:
+            isPhotoLibraryPermissionGranted = true
+        case .notDetermined:
+            requestPhotoLibraryPermission()
+        case .denied, .restricted:
+            isPhotoLibraryPermissionGranted = false
+        @unknown default:
+            isPhotoLibraryPermissionGranted = false
         }
     }
     
     private func requestCameraPermission() {
         AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
             DispatchQueue.main.async {
-                self?.isPermissionGranted = granted
+                self?.isCameraPermissionGranted = granted
             }
         }
     }
     
-    func presentCamera() {
-        print("📷 Present camera requested")
-        if isPermissionGranted {
-            print("📷 Permission granted, showing camera immediately")
+    private func requestPhotoLibraryPermission() {
+        PHPhotoLibrary.requestAuthorization(for: .readWrite) { [weak self] status in
             DispatchQueue.main.async {
-                self.showCamera = true
+                self?.isPhotoLibraryPermissionGranted = (status == .authorized || status == .limited)
             }
-        } else {
-            print("⚠️ Camera permission not granted, requesting permission")
-            checkCameraPermission()
         }
     }
     
-    func handleCapturedImage(_ image: UIImage?) {
-        print("📷 Handle captured image called")
+    func presentImageSource(_ sourceType: UIImagePickerController.SourceType) {
+        print("📷 Present image source requested: \(sourceType)")
+        
+        imageSourceType = sourceType
+        
+        switch sourceType {
+        case .camera:
+            if isCameraPermissionGranted {
+                print("📷 Camera permission granted, showing camera")
+                DispatchQueue.main.async {
+                    self.showImagePicker = true
+                }
+            } else {
+                print("⚠️ Camera permission not granted, requesting permission")
+                checkCameraPermission()
+            }
+        case .photoLibrary:
+            if isPhotoLibraryPermissionGranted {
+                print("🖼️ Photo library permission granted, showing gallery")
+                DispatchQueue.main.async {
+                    self.showImagePicker = true
+                }
+            } else {
+                print("⚠️ Photo library permission not granted, requesting permission")
+                checkPhotoLibraryPermission()
+            }
+        default:
+            print("⚠️ Unsupported source type: \(sourceType)")
+        }
+    }
+    
+    func handleSelectedImage(_ image: UIImage?) {
+        print("📷 Handle selected image called")
         DispatchQueue.main.async {
-            self.capturedImage = image
-            self.showCamera = false
+            self.selectedImage = image
+            self.showImagePicker = false
             print("✅ Image processing completed")
+        }
+    }
+    
+    // Legacy support
+    var capturedImage: UIImage? {
+        get { selectedImage }
+        set { selectedImage = newValue }
+    }
+    
+    var showCamera: Bool {
+        get { showImagePicker && imageSourceType == .camera }
+        set { 
+            if newValue {
+                imageSourceType = .camera
+            }
+            showImagePicker = newValue 
+        }
+    }
+    
+    var isPermissionGranted: Bool {
+        switch imageSourceType {
+        case .camera:
+            return isCameraPermissionGranted
+        case .photoLibrary:
+            return isPhotoLibraryPermissionGranted
+        default:
+            return false
         }
     }
 }
@@ -120,12 +190,13 @@ struct ImagePicker: UIViewControllerRepresentable {
         }
         
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            print("📷 Camera capture completed")
+            print("📷 Image selection completed from: \(picker.sourceType == .camera ? "Camera" : "Photo Library")")
             
             if let originalImage = info[.originalImage] as? UIImage {
                 print("🖼️ Original image received:")
                 print("  Size: \(originalImage.size)")
                 print("  Orientation: \(originalImage.imageOrientation.rawValue)")
+                print("  Source: \(picker.sourceType == .camera ? "Camera" : "Gallery")")
                 
                 // 이미지 방향 보정 없이 그대로 사용
                 // Vision Framework가 자동으로 방향을 처리합니다
@@ -135,11 +206,11 @@ struct ImagePicker: UIViewControllerRepresentable {
                     self.parent.selectedImage = originalImage
                     print("✅ Image passed to app without modification")
                     
-                    // 카메라 즉시 닫기
+                    // 이미지 피커 즉시 닫기
                     self.parent.isPresented = false
                 }
             } else {
-                print("❌ Failed to get original image from camera")
+                print("❌ Failed to get original image")
                 DispatchQueue.main.async {
                     self.parent.isPresented = false
                 }
