@@ -226,13 +226,13 @@ struct HeaderView: View {
                             .font(.caption2)
                             .fontWeight(.semibold)
                     }
-                    .foregroundColor(isQuickAddMode ? .white : .primaryRed)
+                    .foregroundColor(isQuickAddMode ? .white : .retroTeal)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(
                         RoundedRectangle(cornerRadius: 12)
-                            .fill(isQuickAddMode ? Color.primaryRed : Color.clear)
-                            .stroke(Color.primaryRed, lineWidth: 1)
+                            .fill(isQuickAddMode ? Color.retroTeal : Color.clear)
+                            .stroke(Color.retroTeal, lineWidth: 1)
                     )
                     .scaleEffect(isQuickAddMode ? 1.05 : 1.0)
                     .animation(.easeInOut(duration: 0.2), value: isQuickAddMode)
@@ -245,7 +245,7 @@ struct HeaderView: View {
                 HStack {
                     Image(systemName: "person.2.fill")
                         .font(.title2)
-                        .foregroundColor(.primaryRed)
+                        .foregroundColor(.retroTeal)
                     
                     VStack(spacing: 4) {
                         Text("\(faceCount) People")
@@ -264,7 +264,7 @@ struct HeaderView: View {
                     Button(action: onAddFace) {
                         Image(systemName: isQuickAddMode ? "plus.circle.fill" : "plus.circle")
                             .font(.title)
-                            .foregroundColor(.primaryRed)
+                            .foregroundColor(.retroTeal)
                             .scaleEffect(isQuickAddMode ? 1.1 : 1.0)
                             .animation(.easeInOut(duration: 0.2), value: isQuickAddMode)
                     }
@@ -282,7 +282,7 @@ struct HeaderView: View {
                         Text("\(quickAddCount)/\(maxQuickAdd)")
                             .font(.caption2)
                             .fontWeight(.semibold)
-                            .foregroundColor(.primaryRed)
+                            .foregroundColor(.retroTeal)
                     }
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .animation(.easeInOut(duration: 0.3), value: isQuickAddMode)
@@ -328,12 +328,12 @@ struct BottomActionsView: View {
                             .font(.headline)
                             .fontWeight(.medium)
                     }
-                    .foregroundColor(.primaryRed)
+                    .foregroundColor(.retroTeal)
                     .padding(.vertical, 12)
                     .padding(.horizontal, 20)
                     .background(
                         RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.primaryRed, lineWidth: 2)
+                            .stroke(Color.retroTeal, lineWidth: 2)
                     )
                 }
                 
@@ -351,7 +351,7 @@ struct BottomActionsView: View {
                     .padding(.horizontal, 24)
                     .background(
                         RoundedRectangle(cornerRadius: 10)
-                            .fill(Color.primaryRed)
+                            .fill(Color.retroTeal)
                     )
                 }
                 .disabled(faceCount == 0)

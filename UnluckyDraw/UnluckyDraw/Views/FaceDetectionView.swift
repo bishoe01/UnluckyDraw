@@ -46,7 +46,7 @@ struct FaceDetectionView: View {
                     if autoStart && !detectedFaces.isEmpty {
                         Text("Starting in 2 seconds...")
                             .font(.caption)
-                            .foregroundColor(.primaryRed)
+                            .foregroundColor(.retroTeal)
                             .onAppear {
                                 checkAutoStart()
                             }
@@ -110,7 +110,7 @@ struct FaceDetectionView: View {
                         .foregroundColor(.white)
                         .padding(.vertical, 12)
                         .padding(.horizontal, 24)
-                        .background(Color.primaryRed)
+                        .background(Color.retroTeal)
                         .cornerRadius(10)
                     }
                 }
@@ -177,29 +177,14 @@ struct FaceOverlay: View {
         let displayBox = face.displayBoundingBox(for: imageSize)
         
         Rectangle()
-            .stroke(Color.primaryRed.opacity(0.9), lineWidth: 2.5)
-            .background(Color.primaryRed.opacity(0.1))
+            .stroke(Color.retroTeal.opacity(0.9), lineWidth: 2.5)
+            .background(Color.retroTeal.opacity(0.1))
             .frame(width: displayBox.width, height: displayBox.height)
             .position(
                 x: displayBox.midX,
                 y: displayBox.midY
             )
-            .overlay(
-                // 얼굴 번호 배지 (더 선명하고 좋은 배치)
-                Text("\(index + 1)")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
-                    .padding(7)
-                    .background(
-                        Circle()
-                            .fill(Color.primaryRed)
-                            .shadow(color: Color.black.opacity(0.3), radius: 3)
-                    )
-                    .position(
-                        x: displayBox.minX + 22,
-                        y: displayBox.minY + 22
-                    )
-            )
+            // Face number badge overlay - REMOVED
     }
 }
 

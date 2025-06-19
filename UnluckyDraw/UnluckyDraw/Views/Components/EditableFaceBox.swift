@@ -63,20 +63,7 @@ struct EditableFaceBox: View {
                         .animation(.easeInOut(duration: 0.3), value: isDragInBounds)
                 )
             
-            // Face Number Badge
-            Text("\(index + 1)")
-                .font(.system(size: badgeSize, weight: .bold))
-                .foregroundColor(.white)
-                .frame(width: badgeSize + 8, height: badgeSize + 8)
-                .background(
-                    Circle()
-                        .fill(badgeColor)
-                        .shadow(color: Color.black.opacity(0.3), radius: 2, x: 1, y: 1)
-                )
-                .position(
-                    x: currentBox.minX + (badgeSize + 8) / 2 + 4 + offsetX,
-                    y: currentBox.minY + (badgeSize + 8) / 2 + 4 + offsetY
-                )
+            // Face Number Badge - REMOVED
             
             // Delete Button (조건부 표시)
             if showDeleteButton {
@@ -188,11 +175,11 @@ struct EditableFaceBox: View {
         if face.isHighlighted {
             return .highlightYellow  // 하이라이트 색상
         } else if face.isDragging {
-            return .primaryOrange
+            return .retroMint
         } else if face.isUserAdded {
-            return .blue
+            return .retroPurple
         } else {
-            return .primaryRed
+            return .retroTeal
         }
     }
     
@@ -204,21 +191,9 @@ struct EditableFaceBox: View {
         }
     }
     
-    private var badgeColor: Color {
-        return face.isUserAdded ? .blue : .primaryRed
-    }
+    // Badge color function - REMOVED (no longer needed)
     
-    private var badgeSize: CGFloat {
-        let minSize: CGFloat = 12
-        let maxSize: CGFloat = 18
-        let boxSize = min(face.boundingBox.width, face.boundingBox.height)
-        
-        // 박스 크기에 따라 배지 크기 조정 (50~150 픽셀 범위에서)
-        let normalizedSize = (boxSize - 50) / (150 - 50)
-        let clampedSize = max(0, min(1, normalizedSize))
-        
-        return minSize + (maxSize - minSize) * clampedSize
-    }
+    // Badge size function - REMOVED (no longer needed)
     
     // MARK: - 🆕 드래그 제약 및 스냅 함수들
     
