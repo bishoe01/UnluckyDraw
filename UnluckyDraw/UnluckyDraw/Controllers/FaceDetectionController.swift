@@ -20,6 +20,7 @@ class FaceDetectionController: ObservableObject {
     @Published var currentImageSize: CGSize = .zero    // 🆕 현재 이미지 크기
     
     private var faceDetectionRequest: VNDetectFaceRectanglesRequest?
+    private var originalImage: UIImage?  // 🆕 수동 박스 크롭용 원본 이미지 저장
     
     enum FaceDetectionError: LocalizedError {
         case noFacesDetected
@@ -97,6 +98,7 @@ class FaceDetectionController: ObservableObject {
                 
                 // ⭐️ Vision 처리 완료 후 모든 얼굴 크롭
                 DispatchQueue.main.async {
+                    self?.originalImage = image  // 🆕 원본 이미지 저장
                     self?.cropAllDetectedFaces(from: image)
                     
                     // 🆕 이미지 크기가 설정되어 있다면 즉시 editableFaces로 변환
@@ -438,7 +440,7 @@ class FaceDetectionController: ObservableObject {
             avoiding: editableFaces
         )
         
-        let newFace = EditableFace(
+        var newFace = EditableFace(
             boundingBox: CGRect(
                 origin: suggestedPosition,
                 size: smartSize
@@ -447,12 +449,16 @@ class FaceDetectionController: ObservableObject {
             isUserAdded: true
         )
         
+        // 🆕 수동 박스 추가 시 즉시 크롭 실행
+        newFace.croppedImage = cropFaceFromEditableBox(newFace)
+        
         editableFaces.append(newFace)
         
         print("➕ Added new face box:")
         print("  • Position: \(suggestedPosition)")
         print("  • Size: \(smartSize)")
         print("  • Total faces: \(editableFaces.count)")
+        print("  • Cropped image: \(newFace.croppedImage != nil ? "✅" : "❌")")
         
         // 시각적 피드백을 위해 잠시 하이라이트
         if let newIndex = editableFaces.firstIndex(where: { $0.id == newFace.id }) {
@@ -518,6 +524,12 @@ class FaceDetectionController: ObservableObject {
             editableFaces[index].applyDragOffset()
             editableFaces[index].constrainToImage(size: currentImageSize)
             
+            // 🆕 사용자 추가 박스가 이동했으면 재크롭
+            if editableFaces[index].isUserAdded {
+                editableFaces[index].croppedImage = cropFaceFromEditableBox(editableFaces[index])
+                print("🔄 Re-cropped moved user box: \(editableFaces[index].croppedImage != nil ? "✅" : "❌")")
+            }
+            
             let finalBox = editableFaces[index].boundingBox
             print("📏 Finalized face position:")
             print("  • Box: \(finalBox)")
@@ -548,10 +560,76 @@ class FaceDetectionController: ObservableObject {
                 confidence: editableFace.confidence
             )
             
-            // 기존 크롭 이미지가 있으면 사용, 없으면 나중에 생성
-            detectedFace.croppedImage = editableFace.croppedImage
+            // 🆕 크롭 이미지가 없으면 즉석에서 생성 (안전장치)
+            if let croppedImage = editableFace.croppedImage {
+                detectedFace.croppedImage = croppedImage
+            } else if editableFace.isUserAdded {
+                detectedFace.croppedImage = cropFaceFromEditableBox(editableFace)
+                print("🔧 Emergency crop for user box: \(detectedFace.croppedImage != nil ? "✅" : "❌")")
+            }
             
             return detectedFace
         }
+    }
+    
+    // MARK: - 🆕 수동 박스 크롭 시스템
+    
+    /// EditableFace 박스 영역을 원본 이미지에서 크롭
+    private func cropFaceFromEditableBox(_ editableFace: EditableFace) -> UIImage? {
+        guard let originalImage = originalImage else {
+            print("❌ No original image available for cropping")
+            return nil
+        }
+        
+        guard let cgImage = originalImage.cgImage else {
+            print("❌ Cannot get CGImage from original image")
+            return nil
+        }
+        
+        let imageWidth = CGFloat(cgImage.width)
+        let imageHeight = CGFloat(cgImage.height)
+        let boxInPixels = editableFace.boundingBox
+        
+        print("✂️ Cropping user box:")
+        print("  • Original image: \(imageWidth) x \(imageHeight)")
+        print("  • Display size: \(currentImageSize)")
+        print("  • Box in display: \(boxInPixels)")
+        
+        // 디스플레이 좌표를 실제 이미지 좌표로 변환
+        let scaleX = imageWidth / currentImageSize.width
+        let scaleY = imageHeight / currentImageSize.height
+        
+        let cropBox = CGRect(
+            x: boxInPixels.minX * scaleX,
+            y: boxInPixels.minY * scaleY,
+            width: boxInPixels.width * scaleX,
+            height: boxInPixels.height * scaleY
+        )
+        
+        print("  • Crop box in image: \(cropBox)")
+        
+        // 경계 검사
+        let safeCropBox = CGRect(
+            x: max(0, cropBox.minX),
+            y: max(0, cropBox.minY),
+            width: min(imageWidth - max(0, cropBox.minX), cropBox.width),
+            height: min(imageHeight - max(0, cropBox.minY), cropBox.height)
+        )
+        
+        guard safeCropBox.width > 0 && safeCropBox.height > 0 else {
+            print("❌ Invalid crop box dimensions")
+            return nil
+        }
+        
+        // 이미지 크롭
+        guard let croppedCGImage = cgImage.cropping(to: safeCropBox) else {
+            print("❌ Failed to crop CGImage")
+            return nil
+        }
+        
+        let croppedImage = UIImage(cgImage: croppedCGImage, scale: 1.0, orientation: .up)
+        print("  • Cropped size: \(croppedImage.size)")
+        
+        return croppedImage
     }
 }
