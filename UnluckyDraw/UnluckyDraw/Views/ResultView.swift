@@ -28,7 +28,7 @@ struct ResultView: View {
                 Text("GAME OVER")
                     .font(.largeTitle)
                     .fontWeight(.black)
-                    .foregroundColor(.red.opacity(0.8))
+                    .foregroundColor(.unluckyRed.opacity(0.8))
                     .scaleEffect(showAnimation ? 1.0 : 0.3)
                     .animation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.2), value: showAnimation)
             }
@@ -80,13 +80,13 @@ struct ResultView: View {
                             .font(.subheadline)
                             .fontWeight(.semibold)
                     }
-                    .foregroundColor(.darkGray)
+                    .foregroundColor(.adaptiveLabel)
                     .padding(.vertical, 20)
                     .frame(maxWidth: .infinity)
-                    .background(Color.white)
+                    .background(Color.adaptiveSecondaryBackground)
                     .overlay(
                         RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                            .stroke(Color.adaptiveSeparator, lineWidth: 1)
                     )
                     .cornerRadius(14)
                     .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
@@ -271,7 +271,7 @@ struct LargeWinnerDisplay: View {
                                         .foregroundColor(Color(red: 0.7, green: 0.1, blue: 0.1))
                                     Text("☠️ Eliminated")
                                         .font(.headline)
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(.adaptiveSecondaryLabel)
                                 }
                             )
                             .overlay(

@@ -31,7 +31,7 @@ struct PhotoDrawView: View {
         NavigationView {
             ZStack {
                 // Background
-                Color.lightGray
+                Color.adaptiveBackground
                     .ignoresSafeArea()
                 
                 VStack {
@@ -40,7 +40,7 @@ struct PhotoDrawView: View {
                         Button(action: { dismiss() }) {
                             Image(systemName: "xmark")
                                 .font(.title2)
-                                .foregroundColor(.darkGray)
+                                .foregroundColor(.adaptiveLabel)
                         }
                         
                         Spacer()
@@ -48,13 +48,14 @@ struct PhotoDrawView: View {
                         Text("Photo Draw")
                             .font(.headline)
                             .fontWeight(.semibold)
+                            .foregroundColor(.adaptiveLabel)
                         
                         Spacer()
                         
                         // Progress indicator
                         Text(stepDescription)
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.adaptiveSecondaryLabel)
                     }
                     .padding()
                     
@@ -296,7 +297,7 @@ struct InstructionView: View {
                 Text("Take a Group Photo")
                     .font(.title)
                     .fontWeight(.bold)
-                    .foregroundColor(.darkGray)
+                    .foregroundColor(.adaptiveLabel)
                 
                 VStack(spacing: 12) {
                     InstructionRow(
@@ -350,7 +351,7 @@ struct InstructionRow: View {
             
             Text(text)
                 .font(.body)
-                .foregroundColor(.darkGray)
+                .foregroundColor(.adaptiveSecondaryLabel)
             
             Spacer()
         }
@@ -392,11 +393,11 @@ struct PermissionRequestView: View {
                 Text(title)
                     .font(.title)
                     .fontWeight(.bold)
-                    .foregroundColor(.white)
+                    .foregroundColor(.adaptiveLabel)
                 
                 Text(description)
                     .font(.body)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.adaptiveSecondaryLabel)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 20)
             }
@@ -428,7 +429,7 @@ struct PermissionRequestView: View {
                             .font(.headline)
                             .fontWeight(.medium)
                     }
-                    .foregroundColor(.gray)
+                    .foregroundColor(.adaptiveSecondaryLabel)
                     .padding(.vertical, 12)
                     .padding(.horizontal, 24)
                 }

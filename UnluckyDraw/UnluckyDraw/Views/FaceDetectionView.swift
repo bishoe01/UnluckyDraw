@@ -88,10 +88,10 @@ struct FaceDetectionView: View {
                         Image(systemName: "camera.rotate.fill")
                         Text("Retake")
                     }
-                    .foregroundColor(.gray)
+                    .foregroundColor(.adaptiveSecondaryLabel)
                     .padding(.vertical, 12)
                     .padding(.horizontal, 24)
-                    .background(Color.lightGray)
+                    .background(Color.adaptiveTertiaryBackground)
                     .cornerRadius(10)
                 }
                 

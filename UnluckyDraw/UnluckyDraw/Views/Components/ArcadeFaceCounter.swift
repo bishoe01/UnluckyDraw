@@ -76,7 +76,7 @@ struct ArcadeFaceCounter: View {
                 
                 Text("AI 얼굴 인식 진행중...")
                     .font(.subheadline)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.adaptiveSecondaryLabel)
             }
         }
         .padding(.vertical, 20)
@@ -108,7 +108,7 @@ struct ArcadeFaceCounter: View {
                 
                 Text("다시 촬영해주세요!")
                     .font(.subheadline)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.adaptiveSecondaryLabel)
             }
         }
         .padding(.vertical, 20)
@@ -142,8 +142,8 @@ struct ArcadeFaceCounter: View {
                     .fill(
                         LinearGradient(
                             gradient: Gradient(colors: [
-                                Color.white,
-                                Color.gray.opacity(0.05)
+                                Color.adaptiveSecondaryBackground,
+                                Color.adaptiveTertiaryBackground
                             ]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -196,7 +196,7 @@ struct ArcadeFaceCounter: View {
                             Text("FACES")
                                 .font(.caption2)
                                 .fontWeight(.bold)
-                                .foregroundColor(.gray)
+                                .foregroundColor(.adaptiveTertiaryLabel)
                                 .tracking(1.0)
                         }
                     }
@@ -228,7 +228,7 @@ struct ArcadeFaceCounter: View {
                         Text(countMessage)
                             .font(.caption)
                             .fontWeight(.semibold)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.adaptiveSecondaryLabel)
                             .tracking(0.5)
                     }
                 }
@@ -244,7 +244,7 @@ struct ArcadeFaceCounter: View {
                     Text(successMessage)
                         .font(.headline)
                         .fontWeight(.semibold)
-                        .foregroundColor(.darkGray)
+                        .foregroundColor(.adaptiveLabel)
                 }
                 .scaleEffect(bounceScale)
                 .animation(.spring(response: 0.5, dampingFraction: 0.6).delay(0.3), value: bounceScale)
@@ -351,5 +351,5 @@ struct ArcadeFaceCounter: View {
         ArcadeFaceCounter(faceCount: 3, isProcessing: false, hasError: false)
     }
     .padding()
-    .background(Color.lightGray)
+    .background(Color.adaptiveBackground)
 }

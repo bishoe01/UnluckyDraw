@@ -57,7 +57,7 @@ struct EditableFaceBox: View {
                 .overlay(
                     // 🆕 경계 벗어났을 때 경고 표시
                     Rectangle()
-                        .stroke(Color.red.opacity(0.8), lineWidth: 3)
+                        .stroke(Color.unluckyRed.opacity(0.8), lineWidth: 3)
                         .frame(width: currentBox.width, height: currentBox.height)
                         .opacity(!isDragInBounds && face.isDragging ? 1.0 : 0.0)
                         .animation(.easeInOut(duration: 0.3), value: isDragInBounds)
@@ -73,10 +73,10 @@ struct EditableFaceBox: View {
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 20))
-                        .foregroundColor(.red)
+                        .foregroundColor(.unluckyRed)
                         .background(
                             Circle()
-                                .fill(Color.white)
+                                .fill(Color.adaptiveBackground)
                                 .frame(width: 18, height: 18)
                         )
                 }

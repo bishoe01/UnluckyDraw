@@ -59,7 +59,7 @@ struct FaceReviewIntegratedView: View {
                             
                             Text("Detecting faces...")
                                 .font(.headline)
-                                .foregroundColor(.white)
+                                .foregroundColor(.adaptiveLabel)
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity) // 중앙 정렬을 위한 프레임
                     }
@@ -252,11 +252,11 @@ struct IntegratedBottomActionsView: View {
                         Text("🔍 No faces detected")
                             .font(.title2)
                             .fontWeight(.bold)
-                            .foregroundColor(.darkGray)
+                            .foregroundColor(.adaptiveLabel)
                         
                         Text("Try taking the photo again")
                             .font(.body)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.adaptiveSecondaryLabel)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 20)
                     }

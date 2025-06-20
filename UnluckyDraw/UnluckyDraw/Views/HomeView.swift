@@ -16,11 +16,12 @@ struct HomeView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Background Gradient - 레트로 느낌
+                // Background Gradient - 레트로 느낌 (다크모드 대응)
                 LinearGradient(
                     gradient: Gradient(colors: [
-                        Color.retroNavy.opacity(0.1),
-                        Color.retroTeal.opacity(0.05)
+                        Color.retroNavy.opacity(0.15),
+                        Color.retroTeal.opacity(0.08),
+                        Color.adaptiveBackground
                     ]),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -37,11 +38,11 @@ struct HomeView: View {
                         Text("UnluckyDraw")
                             .font(.largeTitle)
                             .fontWeight(.bold)
-                            .foregroundColor(.darkGray)
+                            .foregroundColor(.adaptiveLabel)
                         
                         Text("Who's the unlucky one? 🎰")
                             .font(.headline)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.adaptiveSecondaryLabel)
                     }
                     .padding(.top, 40)
                     
@@ -79,7 +80,7 @@ struct HomeView: View {
                     HStack(spacing: 4) {
                         Text("🕹️ Start your retro gaming adventure!")
                             .font(.subheadline)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.adaptiveSecondaryLabel)
                             .multilineTextAlignment(.center)
                     }
                     .padding(.horizontal, 40)
@@ -146,7 +147,7 @@ struct EnhancedPhotoCard: View {
                         .frame(width: 80, height: 80)
                         .overlay(
                             Circle()
-                                .stroke(Color.white.opacity(0.3), lineWidth: 2)
+                                .stroke(Color.white.opacity(0.4), lineWidth: 2)
                         )
                         .shadow(color: gradientColors.first?.opacity(0.4) ?? .clear, radius: 12, x: 0, y: 6)
                     
@@ -162,12 +163,12 @@ struct EnhancedPhotoCard: View {
                     Text(title)
                         .font(.title2)
                         .fontWeight(.bold)
-                        .foregroundColor(.darkGray)
+                        .foregroundColor(.adaptiveLabel)
                         .multilineTextAlignment(.center)
                     
                     Text(description)
                         .font(.body)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.adaptiveSecondaryLabel)
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                 }
@@ -176,7 +177,7 @@ struct EnhancedPhotoCard: View {
             .padding(.horizontal, 28)
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(Color.white)
+                    .fill(Color.adaptiveSecondaryBackground)
                     .overlay(
                         RoundedRectangle(cornerRadius: 20)
                             .stroke(
@@ -189,7 +190,7 @@ struct EnhancedPhotoCard: View {
                             )
                     )
                     .shadow(
-                        color: Color.black.opacity(isPressed ? 0.2 : 0.1),
+                        color: Color.black.opacity(isPressed ? 0.15 : 0.08),
                         radius: isPressed ? 8 : 16,
                         x: 0,
                         y: isPressed ? 4 : 8
@@ -220,11 +221,11 @@ struct ModeCard: View {
                     Text(mode.rawValue)
                         .font(.headline)
                         .fontWeight(.semibold)
-                        .foregroundColor(.darkGray)
+                        .foregroundColor(.adaptiveLabel)
                     
                     Text(mode.description)
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.adaptiveSecondaryLabel)
                         .multilineTextAlignment(.leading)
                 }
                 
@@ -233,10 +234,10 @@ struct ModeCard: View {
                 // Arrow
                 Image(systemName: "chevron.right")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.gray)
+                    .foregroundColor(.adaptiveTertiaryLabel)
             }
             .padding(20)
-            .background(Color.white)
+            .background(Color.adaptiveSecondaryBackground)
             .cornerRadius(16)
             .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
         }

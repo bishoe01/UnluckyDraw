@@ -20,7 +20,7 @@ struct SnapGuidesView: View {
             // 중앙 세로선
             if shouldShowVerticalCenterGuide {
                 Rectangle()
-                    .fill(Color.blue.opacity(lineOpacity))
+                    .fill(Color.retroTeal.opacity(lineOpacity))
                     .frame(width: lineWidth, height: imageSize.height)
                     .position(x: imageSize.width / 2, y: imageSize.height / 2)
             }
@@ -28,7 +28,7 @@ struct SnapGuidesView: View {
             // 중앙 가로선
             if shouldShowHorizontalCenterGuide {
                 Rectangle()
-                    .fill(Color.blue.opacity(lineOpacity))
+                    .fill(Color.retroTeal.opacity(lineOpacity))
                     .frame(width: imageSize.width, height: lineWidth)
                     .position(x: imageSize.width / 2, y: imageSize.height / 2)
             }
@@ -36,7 +36,7 @@ struct SnapGuidesView: View {
             // 가장자리 가이드 라인들
             ForEach(edgeGuides, id: \.id) { guide in
                 Rectangle()
-                    .fill(Color.orange.opacity(lineOpacity))
+                    .fill(Color.retroMint.opacity(lineOpacity))
                     .frame(width: guide.isVertical ? lineWidth : imageSize.width,
                            height: guide.isVertical ? imageSize.height : lineWidth)
                     .position(x: guide.position.x, y: guide.position.y)

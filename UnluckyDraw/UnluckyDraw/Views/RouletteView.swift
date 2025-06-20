@@ -55,7 +55,7 @@ struct RouletteView: View {
                             .foregroundColor(.winnerGreen)
                         Text("Draw Complete!")
                             .font(.headline)
-                            .foregroundColor(.darkGray)
+                            .foregroundColor(.adaptiveLabel)
                     }
                 }
                 .padding()
@@ -129,7 +129,7 @@ struct RouletteView: View {
                     HStack {
                         Text("Participants:")
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.adaptiveSecondaryLabel)
                         
                         ForEach(0..<faces.count, id: \.self) { index in
                             Circle()
