@@ -62,8 +62,9 @@ struct PhotoDrawView: View {
                     // Main Content
                     switch currentStep {
                     case .instruction:
-                        InstructionView {
-                            proceedToImageCapture()
+                        // 더 이상 사용되지 않음 - 직접 imageCapture로 이동
+                        Color.clear.onAppear {
+                            currentStep = .imageCapture
                         }
                         
                     case .imageCapture:
@@ -170,12 +171,8 @@ struct PhotoDrawView: View {
         }
         .navigationBarHidden(true)
         .onAppear {
-            // 초기 설정: 카메라면 instruction부터, 갤러리면 바로 imageCapture
-            if initialSourceType == .camera {
-                currentStep = .instruction
-            } else {
-                currentStep = .imageCapture
-            }
+            // 초기 설정: 카메라와 갤러리 모두 바로 imageCapture로 시작
+            currentStep = .imageCapture
         }
         .onChange(of: imageSourceManager.selectedImage) { _, newImage in
             print("📷 Image change detected: \(newImage != nil ? "SUCCESS" : "CLEARED")")
@@ -207,23 +204,19 @@ struct PhotoDrawView: View {
     private var stepDescription: String {
         switch currentStep {
         case .instruction:
-            return "1/4"
+            return ""  // 더 이상 사용되지 않음
         case .imageCapture:
-            return initialSourceType == .camera ? "2/4" : "1/4"
+            return "1/3"
         case .faceReviewIntegrated:
-            return initialSourceType == .camera ? "3/4" : "2/4"
+            return "2/3"
         case .roulette:
-            return initialSourceType == .camera ? "4/4" : "3/4"
+            return "3/3"
         case .result:
             return ""
         }
     }
     
-    private func proceedToImageCapture() {
-        let sourceTypeName = initialSourceType == .camera ? "Camera" : "Gallery"
-        print("📷 User proceeding to \(sourceTypeName)")
-        currentStep = .imageCapture
-    }
+    // proceedToImageCapture() 함수 제거 - 더 이상 필요없음
     
     private func proceedToRoulette() {
         // 🆕 통합 페이지에서 바로 룰렛으로
@@ -250,12 +243,8 @@ struct PhotoDrawView: View {
         faceDetectionController.clearResults()
         rouletteController.reset()
         
-        // 초기 단계로 돌아가기
-        if initialSourceType == .camera {
-            currentStep = .instruction
-        } else {
-            currentStep = .imageCapture
-        }
+        // 카메라와 갤러리 모두 바로 imageCapture로 시작
+        currentStep = .imageCapture
         print("✅ App state reset completed")
     }
     
