@@ -88,21 +88,8 @@ struct EditableFaceBox: View {
                 .animation(.easeInOut(duration: 0.2), value: showDeleteButton)
             }
             
-            // User Added Indicator (사용자 추가 박스 표시)
-            if face.isUserAdded {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 16))
-                    .foregroundColor(.blue)
-                    .background(
-                        Circle()
-                            .fill(Color.white)
-                            .frame(width: 14, height: 14)
-                    )
-                    .position(
-                        x: currentBox.maxX - 10 + offsetX,
-                        y: currentBox.maxY - 10 + offsetY
-                    )
-            }
+            // User Added Indicator (사용자 추가 박스 표시) - 제거됨
+            // 플러스 아이콘 표시하지 않음
         }
         .gesture(
             DragGesture(coordinateSpace: .local)
