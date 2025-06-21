@@ -12,82 +12,40 @@ struct HomeView: View {
     @State private var showingPhotoDrawCamera = false
     @State private var showingPhotoDrawGallery = false
     @State private var showingModeSelection = false
+    @State private var pulseAnimation = false
+    @State private var backgroundGradientOffset: CGFloat = 0
+    @State private var logoRotation: Double = 0
     
     var body: some View {
         NavigationView {
             ZStack {
-                // Background Gradient - 레트로 느낌 (다크모드 대응)
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color.retroNavy.opacity(0.15),
-                        Color.retroTeal.opacity(0.08),
-                        Color.adaptiveBackground
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+                // 🌌 Dynamic Dark Background matching ResultView
+                animatedBackground
                 
-                VStack(spacing: 30) {
-                    // Header
-                    VStack(spacing: 12) {
-                        Image(systemName: "gamecontroller.fill")
-                            .font(.system(size: 60))
-                            .foregroundColor(.retroTeal)
-                        
-                        Text("UnluckyDraw")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(.adaptiveLabel)
-                        
-                        Text("Who's the unlucky one? 🎰")
-                            .font(.headline)
-                            .foregroundColor(.adaptiveSecondaryLabel)
-                    }
-                    .padding(.top, 40)
+                VStack(spacing: 40) {
+                    // 🎯 Dramatic Header with animations
+                    headerSection
                     
-                    VStack(spacing: 24) {
-                        // 카메라 카드 - 레트로 청록 톤
-                        EnhancedPhotoCard(
-                            title: "Take New Photo",
-                            description: "Capture a group photo",
-                            icon: "camera.fill",
-                            gradientColors: [Color.retroTeal, Color.retroDarkTeal],
-                            action: {
-                                HapticManager.selection()
-                                showingPhotoDrawCamera = true
-                            }
-                        )
-                        
-                        // 갤러리 카드 - 레트로 보라 톤
-                        EnhancedPhotoCard(
-                            title: "Choose from Gallery",
-                            description: "photo from your library",
-                            icon: "photo.on.rectangle.angled",
-                            gradientColors: [Color.retroPurple, Color.retroDarkPurple],
-                            action: {
-                                HapticManager.selection()
-                                showingPhotoDrawGallery = true
-                            }
-                        )
-                    }
-                    .padding(.horizontal, 20)
+                    // 🎮 Enhanced Action Cards
+                    actionCardsSection
                     
                     Spacer()
                     
-                    // Footer
-                    HStack(spacing: 4) {
-                        Text("🕹️ Start your retro gaming adventure!")
-                            .font(.subheadline)
-                            .foregroundColor(.adaptiveSecondaryLabel)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.horizontal, 40)
-                    .padding(.bottom, 20)
+                    // 🎲 Footer with personality
+                    footerSection
                 }
+                .animation(.none) // 완전히 모든 애니메이션 비활성화
+                .transition(.identity) // 전환 비활성화
             }
             .navigationBarHidden(true)
+            .animation(.none) // NavigationView 애니메이션 비활성화
+            .transition(.identity) // NavigationView 전환 비활성화
+            .onAppear {
+                startAnimations()
+            }
         }
+        .animation(.none) // 전체 비활성화
+        .transition(.identity) // 전체 전환 비활성화
         .fullScreenCover(isPresented: $showingPhotoDrawCamera) {
             PhotoDrawView(initialSourceType: .camera)
         }
@@ -95,9 +53,306 @@ struct HomeView: View {
             PhotoDrawView(initialSourceType: .photoLibrary)
         }
     }
+    
+    // MARK: - UI Components
+    
+    private var animatedBackground: some View {
+        ZStack {
+            // Primary dark gradient
+            LinearGradient(
+                gradient: Gradient(stops: [
+                    .init(color: Color.black, location: 0.0),
+                    .init(color: Color.red.opacity(0.08), location: 0.3),
+                    .init(color: Color.black.opacity(0.95), location: 0.7),
+                    .init(color: Color.black, location: 1.0)
+                ]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            
+            // Animated overlay for depth
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color.orange.opacity(0.05),
+                    Color.clear,
+                    Color.red.opacity(0.05),
+                    Color.clear
+                ]),
+                startPoint: UnitPoint(x: backgroundGradientOffset - 0.5, y: 0),
+                endPoint: UnitPoint(x: backgroundGradientOffset + 0.5, y: 1)
+            )
+            .opacity(0.4)
+        }
+        .ignoresSafeArea()
+    }
+    
+    private var headerSection: some View {
+        VStack(spacing: 20) {
+            // 💀 Skull logo with rotation
+            ZStack {
+                // Glow effect
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [Color.red.opacity(0.3), Color.clear],
+                            center: .center,
+                            startRadius: 5,
+                            endRadius: 60
+                        )
+                    )
+                    .frame(width: 120, height: 120)
+                    .scaleEffect(pulseAnimation ? 1.2 : 0.8)
+                
+                Text("💀")
+                    .font(.system(size: 70))
+                    .rotationEffect(.degrees(logoRotation))
+                    .shadow(color: .red.opacity(0.8), radius: 10)
+            }
+            
+            // App title with dramatic styling
+            VStack(spacing: 8) {
+                Text("UNLUCKY")
+                    .font(.system(size: 32, weight: .black, design: .rounded))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [.white, .gray.opacity(0.8)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .tracking(4)
+                
+                Text("DRAW")
+                    .font(.system(size: 32, weight: .black, design: .rounded))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [.red, .orange.opacity(0.8)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .tracking(4)
+                    .shadow(color: .red.opacity(0.5), radius: 8)
+            }
+            
+            // Subtitle with typewriter effect feel
+            Text("Who will face the skull? 💀")
+                .font(.headline)
+                .foregroundColor(.white.opacity(0.7))
+                .multilineTextAlignment(.center)
+        }
+        .padding(.top, 60)
+    }
+    
+    private var actionCardsSection: some View {
+        VStack(spacing: 20) {
+            // Camera card with dramatic styling
+            EnhancedActionCard(
+                title: "CAPTURE FATE",
+                subtitle: "Take a new photo",
+                description: "Capture your group's destiny",
+                icon: "camera.fill",
+                gradientColors: [Color.red.opacity(0.8), Color.orange.opacity(0.6)],
+                glowColor: .red,
+                action: {
+                    HapticManager.impact(.heavy)
+                    showingPhotoDrawCamera = true
+                }
+            )
+            
+            // Gallery card with contrasting style
+            EnhancedActionCard(
+                title: "CHOOSE VICTIMS",
+                subtitle: "Select from gallery",
+                description: "Pick from your photo collection",
+                icon: "photo.on.rectangle.angled",
+                gradientColors: [Color.gray.opacity(0.8), Color.black.opacity(0.6)],
+                glowColor: .white,
+                action: {
+                    HapticManager.impact(.heavy)
+                    showingPhotoDrawGallery = true
+                }
+            )
+        }
+        .padding(.horizontal, 24)
+    }
+    
+    private var footerSection: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 8) {
+                Text("⚡")
+                    .font(.title2)
+                    .scaleEffect(pulseAnimation ? 1.2 : 0.8)
+                
+                Text("Ready to test your luck?")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white.opacity(0.6))
+                
+                Text("⚡")
+                    .font(.title2)
+                    .scaleEffect(pulseAnimation ? 1.2 : 0.8)
+            }
+        }
+        .padding(.bottom, 40)
+    }
+    
+    // MARK: - Animation Functions
+    
+    private func startAnimations() {
+        // Only start animations after a small delay to prevent initial movement
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            // Pulse animation only
+            withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                pulseAnimation = true
+            }
+            
+            // Logo rotation
+            withAnimation(.linear(duration: 20).repeatForever(autoreverses: false)) {
+                logoRotation = 360
+            }
+        }
+    }
 }
 
-// MARK: - Enhanced Photo Card
+// MARK: - Enhanced Action Card
+
+struct EnhancedActionCard: View {
+    let title: String
+    let subtitle: String
+    let description: String
+    let icon: String
+    let gradientColors: [Color]
+    let glowColor: Color
+    let action: () -> Void
+    
+    @State private var isPressed = false
+    @State private var shimmerOffset: CGFloat = -1.0
+    
+    var body: some View {
+        Button(action: {
+            withAnimation(.easeInOut(duration: 0.1)) {
+                isPressed = true
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation(.easeInOut(duration: 0.1)) {
+                    isPressed = false
+                }
+                action()
+            }
+        }) {
+            VStack(spacing: 20) {
+                // Header with icon
+                HStack {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(title)
+                            .font(.title2)
+                            .fontWeight(.black)
+                            .foregroundColor(.white)
+                        
+                        Text(subtitle)
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.7))
+                        
+                        Text(description)
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.5))
+                    }
+                    
+                    Spacer()
+                    
+                    // Icon with glow
+                    ZStack {
+                        Circle()
+                            .fill(glowColor.opacity(0.2))
+                            .frame(width: 60, height: 60)
+                            .blur(radius: 8)
+                        
+                        Image(systemName: icon)
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 50, height: 50)
+                            .background(
+                                Circle()
+                                    .fill(Color.white.opacity(0.1))
+                            )
+                    }
+                }
+                
+                // Action indicator
+                HStack {
+                    Text("TAP TO START")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white.opacity(0.8))
+                        .tracking(1)
+                    
+                    Spacer()
+                    
+                    Image(systemName: "arrow.right.circle.fill")
+                        .font(.title3)
+                        .foregroundColor(.white.opacity(0.8))
+                }
+            }
+            .padding(24)
+            .background(
+                ZStack {
+                    // Main gradient background
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(
+                            LinearGradient(
+                                colors: gradientColors,
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    
+                    // Shimmer effect
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.clear,
+                                    Color.white.opacity(0.2),
+                                    Color.clear
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .rotationEffect(.degrees(30))
+                        .scaleEffect(x: 3, y: 1)
+                        .offset(x: shimmerOffset * 400)
+                        .clipped()
+                    
+                    // Border glow
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(
+                            LinearGradient(
+                                colors: [glowColor.opacity(0.6), Color.clear],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                }
+            )
+            .shadow(color: glowColor.opacity(0.4), radius: isPressed ? 8 : 15, x: 0, y: isPressed ? 4 : 8)
+            .scaleEffect(isPressed ? 0.95 : 1.0)
+            .animation(.easeInOut(duration: 0.15), value: isPressed)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .onAppear {
+            // Start shimmer animation
+            withAnimation(.linear(duration: 3).repeatForever(autoreverses: false)) {
+                shimmerOffset = 1.0
+            }
+        }
+    }
+}
+
+// MARK: - Legacy Components (for compatibility)
 
 struct EnhancedPhotoCard: View {
     let title: String
@@ -122,9 +377,7 @@ struct EnhancedPhotoCard: View {
             }
         }) {
             VStack(spacing: 20) {
-                // 아이콘 섹션
                 ZStack {
-                    // 배경 원 - 아케이드 스타일
                     Circle()
                         .fill(
                             LinearGradient(
@@ -140,14 +393,12 @@ struct EnhancedPhotoCard: View {
                         )
                         .shadow(color: gradientColors.first?.opacity(0.4) ?? .clear, radius: 12, x: 0, y: 6)
                     
-                    // 아이콘
                     Image(systemName: icon)
                         .font(.system(size: 36, weight: .bold))
                         .foregroundColor(.white)
                         .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
                 }
                 
-                // 텍스트 섹션
                 VStack(spacing: 12) {
                     Text(title)
                         .font(.title2)
@@ -162,7 +413,7 @@ struct EnhancedPhotoCard: View {
                         .lineLimit(2)
                 }
             }
-            .frame(maxWidth: .infinity) // 카드 너비를 최대로 설정
+            .frame(maxWidth: .infinity)
             .padding(.vertical, 32)
             .padding(.horizontal, 28)
             .background(
@@ -200,13 +451,11 @@ struct ModeCard: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 16) {
-                // Icon
                 Image(systemName: mode.icon)
                     .font(.system(size: 32))
                     .foregroundColor(.primaryRed)
                     .frame(width: 50, height: 50)
                 
-                // Content
                 VStack(alignment: .leading, spacing: 4) {
                     Text(mode.rawValue)
                         .font(.headline)
@@ -221,7 +470,6 @@ struct ModeCard: View {
                 
                 Spacer()
                 
-                // Arrow
                 Image(systemName: "chevron.right")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.adaptiveTertiaryLabel)

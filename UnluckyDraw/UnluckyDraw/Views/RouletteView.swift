@@ -12,251 +12,426 @@ struct RouletteView: View {
     let faces: [DetectedFace]
     let currentHighlightedIndex: Int
     let isSpinning: Bool
-    let currentPhase: Int  // 단계 정보 추가
-    let tensionLevel: Double  // 긴장감 레벨 (0.0 ~ 1.0)
+    let currentPhase: Int
+    let tensionLevel: Double
     let onComplete: () -> Void
+    
+    @State private var pulseAnimation = false
+    @State private var backgroundGradientOffset: CGFloat = 0
+    @State private var lightningFlash = false
     
     var body: some View {
         ZStack {
-            // 🌌 룰렛 중에는 전체 화면 어둡게 - 긴장감에 따라 강도 조절
-            if isSpinning {
-                Color.black
-                    .opacity(0.75 + tensionLevel * 0.15) // 긴장감이 높을수록 더 어둡게
-                    .ignoresSafeArea()
-                    .animation(.easeInOut(duration: 0.5), value: isSpinning)
-                    .animation(.easeInOut(duration: 0.3), value: tensionLevel)
+            // 🌌 Dramatic animated background
+            dramaticBackground
+            
+            // ⚡ Lightning flash effect for tension
+            if currentPhase == 3 && tensionLevel > 0.7 {
+                lightningFlashOverlay
             }
             
-            VStack(spacing: 20) {
-                // Status Header - 단계별 다른 메시지
-                VStack(spacing: 8) {
-                    if isSpinning {
-                        HStack(spacing: 8) {
-                            // 단계별 아이콘
-                            getPhaseIcon()
-                            
-                            Text(getPhaseMessage())
-                                .font(.headline)
-                                .foregroundColor(getPhaseColor())
-                                .scaleEffect(currentPhase == 3 ? 1.0 + tensionLevel * 0.1 : 1.0) // 3단계에서 긴장감 효과
-                                .animation(.easeInOut(duration: 0.3), value: currentHighlightedIndex)
-                                .animation(.easeInOut(duration: 0.2), value: tensionLevel)
-                        }
-                        
-                        Text(getPhaseSubMessage())
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                            .opacity(currentPhase == 3 ? 0.7 + tensionLevel * 0.3 : 1.0) // 3단계에서 점멸
-                            .animation(.easeInOut(duration: 0.3), value: currentHighlightedIndex)
-                            .animation(.easeInOut(duration: 0.2), value: tensionLevel)
-                    } else {
-                        Image(systemName: "target")
-                            .font(.system(size: 32))
-                            .foregroundColor(.winnerGreen)
-                        Text("Draw Complete!")
-                            .font(.headline)
-                            .foregroundColor(.adaptiveLabel)
-                    }
-                }
-                .padding()
+            VStack(spacing: 24) {
+                // 🎯 Enhanced status header
+                enhancedStatusHeader
                 
-                // Image with Roulette Animation
-                GeometryReader { geometry in
-                    let imageSize = calculateImageSize(geometry: geometry)
-                    
-                    ZStack {
-                        // Background Image - 스포트라이트 효과를 위해 흑백 처리
-                        Image(uiImage: image)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity) // 중앙 정렬을 위한 프레임
-                            .cornerRadius(16)
-                            .saturation(0)  // 흑백 처리
-                            .brightness(-0.2)
-                            .overlay(
-                                // 테두리 효과 - 룰렛 중에만 (긴장감에 따라 강도 조절)
-                                RoundedRectangle(cornerRadius: 16)
-                                    .stroke(
-                                        LinearGradient(
-                                            colors: currentPhase == 3 ? 
-                                                [.retroPink, .retroTeal, .retroPurple] : // 3단계는 더 극적인 색상
-                                                [.retroTeal, .retroPurple, .retroMint],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        ),
-                                        lineWidth: isSpinning ? 3 + tensionLevel * 3 : 0 // 긴장감에 따라 두께 증가
-                                    )
-                                    .shadow(
-                                        color: (currentPhase == 3 ? Color.retroPink : Color.retroTeal).opacity(0.4 + tensionLevel * 0.4), 
-                                        radius: isSpinning ? 8 + tensionLevel * 8 : 0 // 긴장감에 따라 그림자 강도 증가
-                                    )
-                                    .animation(.easeInOut(duration: 0.3), value: isSpinning)
-                                    .animation(.easeInOut(duration: 0.2), value: tensionLevel)
-                                    .animation(.easeInOut(duration: 0.3), value: currentPhase)
-                            )
-                        
-                        // 🎆 스포트라이트 효과 - 선택된 얼굴만 컬러로 (먼저 배치)
-                        if isSpinning {
-                            ForEach(Array(faces.enumerated()), id: \.element.id) { index, face in
-                                if index == currentHighlightedIndex {
-                                    SpotlightOverlay(
-                                        face: face,
-                                        originalImage: image,
-                                        imageSize: imageSize,
-                                        containerSize: geometry.size
-                                    )
-                                }
-                            }
-                        }
-                        
-                        // 🎯 고정된 프레임들 - 테두리 색상만 변경 (나중에 배치해서 위에 표시)
-                        ForEach(Array(faces.enumerated()), id: \.element.id) { index, face in
-                            FixedFrameOverlay(
-                                face: face,
-                                index: index,
-                                isHighlighted: index == currentHighlightedIndex,
-                                isSpinning: isSpinning,
-                                imageSize: imageSize,
-                                containerSize: geometry.size
-                            )
-                        }
-                    }
-                }
-                .padding(.horizontal, 20)
+                // 🖼️ Main image with advanced effects
+                mainImageSection
                 
-                // Face Counter (레트로 컬러)
-                if faces.count > 1 {
-                    HStack {
-                        Text("Participants:")
-                            .font(.caption)
-                            .foregroundColor(.adaptiveSecondaryLabel)
-                        
-                        ForEach(0..<faces.count, id: \.self) { index in
-                            Circle()
-                                .fill(index == currentHighlightedIndex ? Color.retroTeal : Color.gray.opacity(0.3))
-                                .frame(width: 8, height: 8)
-                                .scaleEffect(index == currentHighlightedIndex ? 1.5 : 1.0)
-                                .animation(.easeInOut(duration: 0.1), value: currentHighlightedIndex)
-                        }
-                    }
-                    .padding()
-                }
+                // 📊 Participant indicator
+                participantIndicator
                 
                 Spacer()
                 
-                // Instructions - 단계별 다른 메시지 + 긴장감 효과
-                if isSpinning {
-                    VStack(spacing: 8) {
-                        Text(getBottomMessage())
-                            .font(.headline)
-                            .foregroundColor(getPhaseColor())
-                            .scaleEffect(currentPhase == 3 ? 1.0 + tensionLevel * 0.08 : (currentHighlightedIndex % 2 == 0 ? 1.0 : 1.02))
-                            .animation(.easeInOut(duration: currentPhase == 3 ? 0.15 : 0.1), value: currentHighlightedIndex)
-                            .animation(.easeInOut(duration: 0.2), value: tensionLevel)
-                        
-                        // 3단계에서 긴장감 표시기
-                        if currentPhase == 3 {
-                            HStack(spacing: 4) {
-                                ForEach(0..<5, id: \.self) { index in
-                                    Circle()
-                                        .fill(index < Int(tensionLevel * 5) ? Color.retroPink : Color.gray.opacity(0.3))
-                                        .frame(width: 6, height: 6)
-                                        .scaleEffect(index < Int(tensionLevel * 5) ? 1.2 : 1.0)
-                                        .animation(.easeInOut(duration: 0.2), value: tensionLevel)
-                                }
-                            }
-                            .opacity(0.8)
-                        }
-                    }
-                    .padding()
+                // 💫 Bottom instructions with phase-based styling
+                bottomInstructions
+            }
+        }
+        .onAppear {
+            startAnimations()
+        }
+        .onChange(of: isSpinning) { _, spinning in
+            if !spinning {
+                onComplete()
+            }
+        }
+        .onChange(of: currentPhase) { _, phase in
+            if phase == 3 {
+                // Extra dramatic effects for final phase
+                HapticManager.impact(.heavy)
+            }
+        }
+    }
+    
+    // MARK: - UI Components
+    
+    private var dramaticBackground: some View {
+        ZStack {
+            // Primary dark gradient matching other views
+            LinearGradient(
+                gradient: Gradient(stops: [
+                    .init(color: Color.black, location: 0.0),
+                    .init(color: getPhaseColor().opacity(0.15), location: 0.3),
+                    .init(color: Color.black.opacity(0.95), location: 0.7),
+                    .init(color: Color.black, location: 1.0)
+                ]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            
+            // Animated overlay that responds to tension
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    getPhaseColor().opacity(0.08 + tensionLevel * 0.1),
+                    Color.clear,
+                    getPhaseColor().opacity(0.05 + tensionLevel * 0.08),
+                    Color.clear
+                ]),
+                startPoint: UnitPoint(x: backgroundGradientOffset - 0.5, y: 0),
+                endPoint: UnitPoint(x: backgroundGradientOffset + 0.5, y: 1)
+            )
+            .opacity(isSpinning ? 0.6 : 0.2)
+        }
+        .ignoresSafeArea()
+    }
+    
+    private var lightningFlashOverlay: some View {
+        Rectangle()
+            .fill(Color.white.opacity(lightningFlash ? 0.3 : 0.0))
+            .ignoresSafeArea()
+            .animation(.easeInOut(duration: 0.1), value: lightningFlash)
+    }
+    
+    private var enhancedStatusHeader: some View {
+        VStack(spacing: 16) {
+            if isSpinning {
+                // Phase icon with enhanced effects
+                ZStack {
+                    // Glow background
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [getPhaseColor().opacity(0.4), Color.clear],
+                                center: .center,
+                                startRadius: 5,
+                                endRadius: 40
+                            )
+                        )
+                        .frame(width: 80, height: 80)
+                        .scaleEffect(pulseAnimation ? 1.3 : 0.8)
+                    
+                    getPhaseIcon()
+                        .font(.system(size: 36, weight: .bold))
+                        .foregroundColor(.white)
+                        .shadow(color: getPhaseColor(), radius: 8)
+                }
+                
+                // Phase message with dramatic styling
+                VStack(spacing: 8) {
+                    Text(getPhaseMessage())
+                        .font(.title2)
+                        .fontWeight(.black)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.white, getPhaseColor()],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .scaleEffect(currentPhase == 3 ? 1.0 + tensionLevel * 0.1 : 1.0)
+                        .shadow(color: getPhaseColor().opacity(0.6), radius: 4)
+                    
+                    Text(getPhaseSubMessage())
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
+                        .tracking(1)
+                        .opacity(currentPhase == 3 ? 0.7 + tensionLevel * 0.3 : 1.0)
+                }
+                
+                // Tension meter for final phase
+                if currentPhase == 3 {
+                    tensionMeter
+                }
+                
+            } else {
+                // Completion state
+                VStack(spacing: 12) {
+                    Text("💀")
+                        .font(.system(size: 50))
+                        .shadow(color: .red, radius: 10)
+                    
+                    Text("TARGET ELIMINATED")
+                        .font(.title2)
+                        .fontWeight(.black)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.red, .orange],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .shadow(color: .red.opacity(0.6), radius: 8)
                 }
             }
-            .onChange(of: isSpinning) { _, spinning in
-                if !spinning {
-                    // 룰렛이 끝나면 즉시 ResultView로 전환 (숫자 배지 표시 없음)
-                    onComplete()
+        }
+        .padding(.top, 20)
+        .padding(.horizontal, 20)
+    }
+    
+    private var tensionMeter: some View {
+        VStack(spacing: 8) {
+            Text("TENSION LEVEL")
+                .font(.caption2)
+                .fontWeight(.bold)
+                .foregroundColor(.white.opacity(0.6))
+                .tracking(2)
+            
+            HStack(spacing: 4) {
+                ForEach(0..<10, id: \.self) { index in
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(index < Int(tensionLevel * 10) ? 
+                              LinearGradient(colors: [.red, .orange], startPoint: .leading, endPoint: .trailing) :
+                              LinearGradient(colors: [.gray.opacity(0.3)], startPoint: .leading, endPoint: .trailing)
+                        )
+                        .frame(width: 20, height: 4)
+                        .scaleEffect(y: index < Int(tensionLevel * 10) ? 1.5 : 1.0)
+                        .animation(.easeInOut(duration: 0.2), value: tensionLevel)
                 }
             }
         }
     }
     
-    // MARK: - 단계별 분위기 연출 함수들 (레트로 게임 스타일)
+    private var mainImageSection: some View {
+        GeometryReader { geometry in
+            let imageSize = calculateImageSize(geometry: geometry)
+            
+            ZStack {
+                // Background image with phase-responsive effects
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .saturation(isSpinning ? 0.2 : 1.0) // Desaturated during spinning
+                    .brightness(isSpinning ? -0.3 : 0.0)
+                    .overlay(
+                        // Dynamic border that responds to phase and tension
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(
+                                LinearGradient(
+                                    colors: currentPhase == 3 ? 
+                                        [.red, .orange, .red] :
+                                        [getPhaseColor(), getPhaseColor().opacity(0.6)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: isSpinning ? 3 + tensionLevel * 4 : 1
+                            )
+                            .shadow(
+                                color: getPhaseColor().opacity(0.6 + tensionLevel * 0.4),
+                                radius: isSpinning ? 12 + tensionLevel * 12 : 4
+                            )
+                    )
+                    .scaleEffect(currentPhase == 3 ? 1.0 + tensionLevel * 0.02 : 1.0)
+                    .animation(.easeInOut(duration: 0.3), value: isSpinning)
+                    .animation(.easeInOut(duration: 0.2), value: tensionLevel)
+                    .animation(.easeInOut(duration: 0.3), value: currentPhase)
+                
+                // Spotlight effect for highlighted face
+                if isSpinning {
+                    ForEach(Array(faces.enumerated()), id: \.element.id) { index, face in
+                        if index == currentHighlightedIndex {
+                            EnhancedSpotlightOverlay(
+                                face: face,
+                                originalImage: image,
+                                imageSize: imageSize,
+                                containerSize: geometry.size,
+                                tensionLevel: tensionLevel,
+                                currentPhase: currentPhase
+                            )
+                        }
+                    }
+                }
+                
+                // Face frames with enhanced styling
+                ForEach(Array(faces.enumerated()), id: \.element.id) { index, face in
+                    EnhancedFixedFrameOverlay(
+                        face: face,
+                        index: index,
+                        isHighlighted: index == currentHighlightedIndex,
+                        isSpinning: isSpinning,
+                        imageSize: imageSize,
+                        containerSize: geometry.size,
+                        tensionLevel: tensionLevel,
+                        currentPhase: currentPhase
+                    )
+                }
+            }
+        }
+        .padding(.horizontal, 24)
+        .frame(maxHeight: 400)
+    }
+    
+    private var participantIndicator: some View {
+        Group {
+            if faces.count > 1 {
+                VStack(spacing: 8) {
+                    Text("PARTICIPANTS")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white.opacity(0.6))
+                        .tracking(2)
+                    
+                    HStack(spacing: 8) {
+                        ForEach(0..<faces.count, id: \.self) { index in
+                            Circle()
+                                .fill(
+                                    index == currentHighlightedIndex ?
+                                    LinearGradient(colors: [getPhaseColor(), getPhaseColor().opacity(0.6)], startPoint: .top, endPoint: .bottom) :
+                                    LinearGradient(colors: [.gray.opacity(0.4)], startPoint: .top, endPoint: .bottom)
+                                )
+                                .frame(width: 12, height: 12)
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                                )
+                                .scaleEffect(index == currentHighlightedIndex ? 1.5 : 1.0)
+                                .shadow(
+                                    color: index == currentHighlightedIndex ? getPhaseColor().opacity(0.8) : .clear,
+                                    radius: index == currentHighlightedIndex ? 4 : 0
+                                )
+                                .animation(.easeInOut(duration: 0.2), value: currentHighlightedIndex)
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+            } else {
+                EmptyView()
+            }
+        }
+    }
+    
+    private var bottomInstructions: some View {
+        Group {
+            if isSpinning {
+                VStack(spacing: 12) {
+                    Text(getBottomMessage())
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.white, getPhaseColor()],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .scaleEffect(currentPhase == 3 ? 1.0 + tensionLevel * 0.05 : 1.0)
+                        .shadow(color: getPhaseColor().opacity(0.4), radius: 4)
+                        .multilineTextAlignment(.center)
+                    
+                    if currentPhase == 3 {
+                        Text("💀 FINAL MOMENTS 💀")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(.red.opacity(0.8))
+                            .tracking(1)
+                            .scaleEffect(pulseAnimation ? 1.1 : 0.9)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 40)
+            } else {
+                EmptyView()
+            }
+        }
+    }
+    
+    // MARK: - Animation Functions
+    
+    private func startAnimations() {
+        // Pulse animation
+        withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+            pulseAnimation = true
+        }
+        
+        // Background gradient animation
+        withAnimation(.linear(duration: 8).repeatForever(autoreverses: false)) {
+            backgroundGradientOffset = 1.0
+        }
+        
+        // Lightning flash for high tension
+        if currentPhase == 3 && tensionLevel > 0.7 {
+            Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+                if currentPhase == 3 && tensionLevel > 0.7 {
+                    withAnimation(.easeInOut(duration: 0.05)) {
+                        lightningFlash = true
+                    }
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        withAnimation(.easeInOut(duration: 0.05)) {
+                            lightningFlash = false
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Phase-based styling functions
     
     @ViewBuilder
     private func getPhaseIcon() -> some View {
         switch currentPhase {
         case 1:
             Image(systemName: "bolt.fill")
-                .font(.title2)
-                .foregroundColor(.retroTeal)
-                .scaleEffect(1.0 + tensionLevel * 0.1)
+                .scaleEffect(1.0 + tensionLevel * 0.2)
         case 2:
             Image(systemName: "timer")
-                .font(.title2)
-                .foregroundColor(.retroPink)
-                .scaleEffect(1.0 + tensionLevel * 0.15)
+                .scaleEffect(1.0 + tensionLevel * 0.25)
+                .rotationEffect(.degrees(tensionLevel * 15))
         case 3:
             Image(systemName: "target")
-                .font(.title2)
-                .foregroundColor(.retroPink)
-                .scaleEffect(1.0 + tensionLevel * 0.2)
-                .rotationEffect(.degrees(tensionLevel * 10)) // 3단계에서 미세한 회전
+                .scaleEffect(1.0 + tensionLevel * 0.3)
+                .rotationEffect(.degrees(tensionLevel * 20))
         default:
             ProgressView()
                 .scaleEffect(0.8)
-                .tint(.retroPurple)
+                .tint(.white)
         }
     }
     
     private func getPhaseMessage() -> String {
         switch currentPhase {
-        case 1:
-            return "High-Speed Scan!"
-        case 2:
-            return "Target Acquired..."
-        case 3:
-            return "FINAL SELECTION!"
-        default:
-            return "Initializing..."
+        case 1: return "⚡ SCANNING TARGETS"
+        case 2: return "🎯 LOCKING ONTO TARGET"
+        case 3: return "💀 FATE DECIDES NOW"
+        default: return "🕹️ INITIALIZING..."
         }
     }
     
     private func getPhaseSubMessage() -> String {
         switch currentPhase {
-        case 1:
-            return "Blur-speed detection active"
-        case 2:
-            return "Narrowing down targets..."
-        case 3:
-            return "Decision moment approaching..."
-        default:
-            return "Loading game data..."
+        case 1: return "High-speed detection active"
+        case 2: return "Narrowing down possibilities..."
+        case 3: return "The moment of truth approaches..."
+        default: return "Loading targeting system..."
         }
     }
     
     private func getBottomMessage() -> String {
         switch currentPhase {
-        case 1:
-            return "⚡ High-speed scanning active!"
-        case 2:
-            return "🎯 Target lock in progress..."
-        case 3:
-            return "💥 FINAL COUNTDOWN!"
-        default:
-            return "🕹️ System loading..."
+        case 1: return "⚡ RAPID SCAN IN PROGRESS"
+        case 2: return "🎯 TARGET ACQUISITION PHASE"
+        case 3: return "💥 ELIMINATION IMMINENT"
+        default: return "🕹️ SYSTEM INITIALIZING"
         }
     }
     
     private func getPhaseColor() -> Color {
         switch currentPhase {
-        case 1:
-            return .retroTeal
-        case 2:
-            return .retroPink
-        case 3:
-            return .retroPink // 3단계는 더 강렬한 색상
-        default:
-            return .retroPurple
+        case 1: return .cyan
+        case 2: return .orange
+        case 3: return .red
+        default: return .purple
         }
     }
     
@@ -279,41 +454,37 @@ struct RouletteView: View {
     }
 }
 
-// MARK: - 🎯 고정된 프레임 오버레이 (레트로 게임 컬러)
-struct FixedFrameOverlay: View {
+// MARK: - Enhanced Components
+
+struct EnhancedFixedFrameOverlay: View {
     let face: DetectedFace
     let index: Int
     let isHighlighted: Bool
     let isSpinning: Bool
     let imageSize: CGSize
-    let containerSize: CGSize // 컨테이너 크기 추가
+    let containerSize: CGSize
+    let tensionLevel: Double
+    let currentPhase: Int
     
     var body: some View {
         let displayBox = face.displayBoundingBox(for: imageSize)
-        
-        // 이미지가 컨테이너 중앙에 위치하도록 offset 계산
         let offsetX = (containerSize.width - imageSize.width) / 2
         let offsetY = (containerSize.height - imageSize.height) / 2
         
-        // 고정된 얼굴 프레임 - 레트로 게임 스타일 테두리
         RoundedRectangle(cornerRadius: 12)
             .stroke(
-                isHighlighted ? 
+                isHighlighted ?
                 LinearGradient(
-                    colors: [.retroTeal, .retroMint],
+                    colors: currentPhase == 3 ? [.red, .orange, .red] : [.cyan, .blue],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
-                ) : 
+                ) :
                 LinearGradient(
-                    colors: [.retroPurple.opacity(0.4), .retroCharcoal.opacity(0.3)],
+                    colors: [.gray.opacity(0.4), .gray.opacity(0.2)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 ),
-                lineWidth: isHighlighted ? 4 : 2
-            )
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.clear) // 배경은 투명
+                lineWidth: isHighlighted ? (currentPhase == 3 ? 4 + tensionLevel * 2 : 3) : 1
             )
             .frame(width: displayBox.width, height: displayBox.height)
             .position(
@@ -321,40 +492,37 @@ struct FixedFrameOverlay: View {
                 y: displayBox.midY + offsetY
             )
             .shadow(
-                color: isHighlighted ? Color.retroTeal.opacity(0.8) : Color.clear,
-                radius: isHighlighted ? 12 : 0
+                color: isHighlighted ? 
+                    (currentPhase == 3 ? Color.red.opacity(0.8 + tensionLevel * 0.2) : Color.cyan.opacity(0.6)) :
+                    Color.clear,
+                radius: isHighlighted ? (currentPhase == 3 ? 15 + tensionLevel * 10 : 10) : 0
             )
-            .scaleEffect(isHighlighted ? 1.02 : 1.0) // 선택된 얼굴 살짝 확대
+            .scaleEffect(isHighlighted ? (currentPhase == 3 ? 1.05 + tensionLevel * 0.05 : 1.02) : 1.0)
             .animation(.easeInOut(duration: 0.15), value: isHighlighted)
+            .animation(.easeInOut(duration: 0.2), value: tensionLevel)
     }
 }
 
-// MARK: - 🎆 스포트라이트 효과 컴포넌트 (얼굴 밀림 현상 완전 해결)
-struct SpotlightOverlay: View {
+struct EnhancedSpotlightOverlay: View {
     let face: DetectedFace
     let originalImage: UIImage
     let imageSize: CGSize
-    let containerSize: CGSize // 컨테이너 크기 추가
+    let containerSize: CGSize
+    let tensionLevel: Double
+    let currentPhase: Int
     
     var body: some View {
         let displayBox = face.displayBoundingBox(for: imageSize)
-        
-        // 이미지가 컨테이너 중앙에 위치하도록 offset 계산
         let offsetX = (containerSize.width - imageSize.width) / 2
         let offsetY = (containerSize.height - imageSize.height) / 2
         
-        // 🔧 완전히 새로운 접근: 클립핑 방식으로 위치 오차 제거
         Image(uiImage: originalImage)
             .resizable()
             .aspectRatio(contentMode: .fit)
             .frame(width: imageSize.width, height: imageSize.height)
-            .position(
-                x: containerSize.width / 2,
-                y: containerSize.height / 2
-            )
+            .position(x: containerSize.width / 2, y: containerSize.height / 2)
             .clipped()
             .mask(
-                // 정확히 동일한 좌표와 크기로 마스크 - 둘근 모서리도 동일하게!
                 RoundedRectangle(cornerRadius: 12)
                     .frame(width: displayBox.width, height: displayBox.height)
                     .position(
@@ -362,6 +530,9 @@ struct SpotlightOverlay: View {
                         y: displayBox.midY + offsetY
                     )
             )
+            .saturation(currentPhase == 3 ? 1.5 + tensionLevel * 0.5 : 1.2)
+            .brightness(currentPhase == 3 ? 0.2 + tensionLevel * 0.1 : 0.1)
+            .animation(.easeInOut(duration: 0.2), value: tensionLevel)
     }
 }
 
@@ -371,8 +542,8 @@ struct SpotlightOverlay: View {
         faces: [],
         currentHighlightedIndex: 0,
         isSpinning: true,
-        currentPhase: 3,  // 3단계 미리보기
-        tensionLevel: 0.8, // 높은 긴장감
+        currentPhase: 3,
+        tensionLevel: 0.9,
         onComplete: {}
     )
 }
