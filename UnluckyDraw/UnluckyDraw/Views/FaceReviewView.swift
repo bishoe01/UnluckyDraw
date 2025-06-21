@@ -15,14 +15,14 @@ struct FaceReviewView: View {
     
     @State private var imageSize: CGSize = .zero
     @State private var showingAddConfirmation = false
-    @State private var isQuickAddMode = false  // 🆕 빠른 추가 모드
+    @State private var isQuickAddMode = false  // 🆕 Quick add mode
     @State private var quickAddCount = 0
     
-    private let maxQuickAdd = 5  // 최대 5개까지 빠른 추가
+    private let maxQuickAdd = 5  // Maximum 5 quick additions
     
     var body: some View {
         VStack(spacing: 20) {
-            // Header - 상태 표시
+            // Header - Status display
             HeaderView(
                 faceCount: faceDetectionController.editableFaces.count,
                 isQuickAddMode: isQuickAddMode,
@@ -33,7 +33,7 @@ struct FaceReviewView: View {
                 onBack: onBack
             )
             
-            // Main Content - 이미지와 편집 가능한 얼굴 박스들
+            // Main Content - Image and editable face boxes
             GeometryReader { geometry in
                 ZStack {
                     // Background Image
@@ -58,9 +58,9 @@ struct FaceReviewView: View {
                             EditableFaceBox(
                                 face: face,
                                 imageSize: calculatedImageSize,
-                                index: index,  // 얼굴 번호 전달
-                                offsetX: offsetX,  // ⭐️ offset 추가
-                                offsetY: offsetY,  // ⭐️ offset 추가
+                                index: index,  // Pass face number
+                                offsetX: offsetX,  // ⭐️ Add offset
+                                offsetY: offsetY,  // ⭐️ Add offset
                                 onDragChanged: { dragOffset in
                                     faceDetectionController.updateFacePosition(
                                         id: face.id,
@@ -127,11 +127,11 @@ struct FaceReviewView: View {
     private func updateImageSizeIfNeeded(geometry: GeometryProxy) {
         let newImageSize = calculateImageSize(geometry: geometry)
         
-        // 이미지 크기가 변경되었을 때만 업데이트
+        // Update only when image size has changed
         if imageSize != newImageSize {
             imageSize = newImageSize
             
-            // FaceDetectionController에도 이미지 크기 정보 전달
+            // Also pass image size information to FaceDetectionController
             if faceDetectionController.currentImageSize != newImageSize {
                 faceDetectionController.convertToEditableFaces(imageSize: newImageSize)
             }
@@ -141,7 +141,7 @@ struct FaceReviewView: View {
     private func setupReviewMode() {
         print("🔍 Setting up face review mode")
         
-        // 이미지 크기가 설정되면 자동으로 convertToEditableFaces가 호출됨
+        // convertToEditableFaces is automatically called when image size is set
         if imageSize != .zero {
             faceDetectionController.convertToEditableFaces(imageSize: imageSize)
         }
@@ -151,16 +151,16 @@ struct FaceReviewView: View {
         HapticManager.impact(.medium)
         
         if isQuickAddMode {
-            // 빠른 추가 모드: 즉시 추가
+            // Quick add mode: add immediately
             faceDetectionController.addNewFace()
             quickAddCount += 1
             
-            // 최대 개수에 도달하면 모드 끄기
+            // Turn off mode when maximum count is reached
             if quickAddCount >= maxQuickAdd {
                 toggleQuickAddMode()
             }
         } else {
-            // 일반 모드: 확인 다이얼로그
+            // Normal mode: confirmation dialog
             showingAddConfirmation = true
         }
     }

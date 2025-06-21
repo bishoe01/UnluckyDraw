@@ -14,13 +14,13 @@ import AudioToolbox
 
 class FaceDetectionController: ObservableObject {
     @Published var detectedFaces: [DetectedFace] = []
-    @Published var editableFaces: [EditableFace] = []  // 🆕 편집 가능한 얼굴 목록
+    @Published var editableFaces: [EditableFace] = []  // 🆕 Editable face list
     @Published var isProcessing = false
     @Published var error: FaceDetectionError?
-    @Published var currentImageSize: CGSize = .zero    // 🆕 현재 이미지 크기
+    @Published var currentImageSize: CGSize = .zero    // 🆕 Current image size
     
     private var faceDetectionRequest: VNDetectFaceRectanglesRequest?
-    private var originalImage: UIImage?  // 🆕 수동 박스 크롭용 원본 이미지 저장
+    private var originalImage: UIImage?  // 🆕 Store original image for manual box cropping
     
     enum FaceDetectionError: LocalizedError {
         case noFacesDetected
@@ -50,12 +50,12 @@ class FaceDetectionController: ObservableObject {
             }
         }
         
-        // 최대 성능으로 얼굴 인식 설정
+        // Set face detection to maximum performance
         faceDetectionRequest?.revision = VNDetectFaceRectanglesRequestRevision3
         
-        // GPU 가속 사용 및 성능 최적화
+        // Use GPU acceleration and performance optimization
         if #available(iOS 14.0, *) {
-            faceDetectionRequest?.usesCPUOnly = false // GPU 가속 활용
+            faceDetectionRequest?.usesCPUOnly = false // Utilize GPU acceleration
         }
         
 
@@ -73,15 +73,15 @@ class FaceDetectionController: ObservableObject {
         
 
         
-        // 이미지 전처리는 그대로 유지하지만, 방향 정보를 보존
+        // Keep image preprocessing as is, but preserve orientation information
         let processedImage = preprocessImageForDetection(cgImage)
         
-        // Vision이 이미지 방향을 자동으로 처리하도록 설정
+        // Set Vision to automatically handle image orientation
         let imageOrientation = cgImageOrientationFromUIImage(image.imageOrientation)
         
         let imageRequestHandler = VNImageRequestHandler(
             cgImage: processedImage,
-            orientation: imageOrientation, // 중요: 원본 방향 정보 전달
+            orientation: imageOrientation, // Important: pass original orientation information
             options: [:]
         )
         
@@ -94,12 +94,12 @@ class FaceDetectionController: ObservableObject {
             do {
                 try imageRequestHandler.perform([request])
                 
-                // ⭐️ Vision 처리 완료 후 모든 얼굴 크롭
+                // ⭐️ Crop all faces after Vision processing completes
                 DispatchQueue.main.async {
-                    self?.originalImage = image  // 🆕 원본 이미지 저장
+                    self?.originalImage = image  // 🆕 Store original image
                     self?.cropAllDetectedFaces(from: image)
                     
-                    // 🆕 이미지 크기가 설정되어 있다면 즉시 editableFaces로 변환
+                    // 🆕 If image size is set, immediately convert to editableFaces
                     if self?.currentImageSize != .zero {
                         self?.convertToEditableFaces(imageSize: self?.currentImageSize ?? .zero)
                     }
@@ -132,43 +132,43 @@ class FaceDetectionController: ObservableObject {
         let context = CIContext(options: [.useSoftwareRenderer: false]) // GPU 사용
         let ciImage = CIImage(cgImage: cgImage)
         
-        // 다단계 이미지 향상 파이프라인
+        // Multi-stage image enhancement pipeline
         
-        // 1단계: 기본 색상 보정
+        // Stage 1: Basic color correction
         let colorCorrected = ciImage
             .applyingFilter("CIColorControls", parameters: [
-                "inputContrast": 1.3,      // 대비 증가
-                "inputBrightness": 0.15,   // 밝기 약간 증가
-                "inputSaturation": 0.8     // 채도 약간 감소
+                "inputContrast": 1.3,      // Increase contrast
+                "inputBrightness": 0.15,   // Slightly increase brightness
+                "inputSaturation": 0.8     // Slightly decrease saturation
             ])
         
-        // 2단계: 샤프닝 (얼굴 윤곽 선명하게)
+        // Stage 2: Sharpening (sharpen face contours)
         let sharpened = colorCorrected
             .applyingFilter("CISharpenLuminance", parameters: [
                 "inputSharpness": 0.7
             ])
         
-        // 3단계: 노이즈 제거
+        // Stage 3: Noise reduction
         let denoised = sharpened
             .applyingFilter("CINoiseReduction", parameters: [
                 "inputNoiseLevel": 0.02,
                 "inputSharpness": 0.9
             ])
         
-        // 4단계: 감마 보정 (얼굴 영역 명확하게)
+        // Stage 4: Gamma correction (clarify face areas)
         let gammaAdjusted = denoised
             .applyingFilter("CIGammaAdjust", parameters: [
                 "inputPower": 0.85
             ])
         
-        // 5단계: 색온 정규화 (자연스러운 피부톤 연출)
+        // Stage 5: Color temperature normalization (natural skin tone)
         let temperatureAdjusted = gammaAdjusted
             .applyingFilter("CITemperatureAndTint", parameters: [
                 "inputNeutral": CIVector(x: 6500, y: 0),
                 "inputTargetNeutral": CIVector(x: 6500, y: 0)
             ])
         
-        // 최종 이미지 생성
+        // Generate final image
         if let outputCGImage = context.createCGImage(temperatureAdjusted, from: temperatureAdjusted.extent) {
             print("✨ Image preprocessing completed with \(outputCGImage.width)x\(outputCGImage.height) resolution")
             return outputCGImage

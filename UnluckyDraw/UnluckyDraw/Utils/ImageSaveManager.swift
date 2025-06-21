@@ -215,11 +215,11 @@ enum ImageSaveError: Error, LocalizedError {
     var userFriendlyMessage: String {
         switch self {
         case .permissionDenied:
-            return "사진 라이브러리 접근 권한이 필요합니다.\n설정 > UnluckyDraw에서 권한을 허용해주세요."
+            return "Photo library access permission is required.\nPlease allow permission in Settings > UnluckyDraw."
         case .imageProcessingFailed:
-            return "이미지 처리 중 오류가 발생했습니다."
+            return "An error occurred while processing the image."
         case .saveFailed:
-            return "사진 저장에 실패했습니다."
+            return "Failed to save the photo."
         }
     }
 }

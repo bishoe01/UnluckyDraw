@@ -75,7 +75,7 @@ struct ArcadeFaceCounter: View {
                     .foregroundColor(.retroTeal)
                     .tracking(1.5)
                 
-                Text("AI 얼굴 인식 진행중...")
+                Text("AI face detection in progress...")
                     .font(.subheadline)
                     .foregroundColor(.adaptiveSecondaryLabel)
             }
@@ -108,7 +108,7 @@ struct ArcadeFaceCounter: View {
                     .foregroundColor(.primaryOrange)
                     .tracking(1.0)
                 
-                Text("다시 촬영해주세요!")
+                Text("Please take another photo!")
                     .font(.subheadline)
                     .foregroundColor(.adaptiveSecondaryLabel)
             }
@@ -221,8 +221,8 @@ struct ArcadeFaceCounter: View {
                                 .animation(.spring(response: 0.6, dampingFraction: 0.7), value: animatedCount)
                             
                             if animatedCount > 0 {
-                                Text("명")
-                                    .font(.system(size: 20, weight: .bold))
+                                Text(animatedCount == 1 ? "PERSON" : "PEOPLE")
+                                    .font(.system(size: 12, weight: .bold))
                                     .foregroundColor(countColor)
                                     .offset(y: 8)
                             }

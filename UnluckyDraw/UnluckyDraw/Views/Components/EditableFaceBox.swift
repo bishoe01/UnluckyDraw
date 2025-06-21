@@ -10,27 +10,27 @@ import SwiftUI
 struct EditableFaceBox: View {
     let face: EditableFace
     let imageSize: CGSize
-    let index: Int  // 얼굴 번호 표시용
-    let offsetX: CGFloat  // ⭐️ 이미지 offset 추가
-    let offsetY: CGFloat  // ⭐️ 이미지 offset 추가
+    let index: Int  // For displaying face number
+    let offsetX: CGFloat  // ⭐️ Add image offset
+    let offsetY: CGFloat  // ⭐️ Add image offset
     let onDragChanged: (CGSize) -> Void
     let onDragEnded: () -> Void
     let onDelete: () -> Void
     
     @State private var showDeleteButton = false
     @State private var dragOffset: CGSize = .zero
-    @State private var isDragInBounds = true  // 🆕 드래그가 경계 내에 있는지
-    @State private var showSnapGuides = false  // 🆕 스냅 가이드 표시
+    @State private var isDragInBounds = true  // 🆕 Whether drag is within bounds
+    @State private var showSnapGuides = false  // 🆕 Show snap guides
     
-    // 🆕 스냅 설정
-    private let snapThreshold: CGFloat = 15  // 스냅 임계값
-    private let edgeSnapDistance: CGFloat = 30  // 가장자리 스냅 거리
+    // 🆕 Snap settings
+    private let snapThreshold: CGFloat = 15  // Snap threshold
+    private let edgeSnapDistance: CGFloat = 30  // Edge snap distance
     
     var body: some View {
         let currentBox = face.currentBoundingBox
         
         ZStack {
-            // 🆕 스냅 가이드 라인들
+            // 🆕 Snap guide lines
             if showSnapGuides {
                 SnapGuidesView(
                     imageSize: imageSize,
@@ -55,7 +55,7 @@ struct EditableFaceBox: View {
                 .animation(.easeInOut(duration: 0.2), value: face.isDragging)
                 .animation(.easeInOut(duration: 0.8).repeatCount(3, autoreverses: true), value: face.isHighlighted)
                 .overlay(
-                    // 🆕 경계 벗어났을 때 경고 표시
+                    // 🆕 Warning display when out of bounds
                     Rectangle()
                         .stroke(Color.unluckyRed.opacity(0.8), lineWidth: 3)
                         .frame(width: currentBox.width, height: currentBox.height)
@@ -65,7 +65,7 @@ struct EditableFaceBox: View {
             
             // Face Number Badge - REMOVED
             
-            // Delete Button (조건부 표시)
+            // Delete Button (conditional display)
             if showDeleteButton {
                 Button(action: {
                     HapticManager.impact(.light)
@@ -88,8 +88,8 @@ struct EditableFaceBox: View {
                 .animation(.easeInOut(duration: 0.2), value: showDeleteButton)
             }
             
-            // User Added Indicator (사용자 추가 박스 표시) - 제거됨
-            // 플러스 아이콘 표시하지 않음
+            // User Added Indicator (user-added box display) - removed
+            // Plus icon not displayed
         }
         .gesture(
             DragGesture(coordinateSpace: .local)
@@ -99,7 +99,7 @@ struct EditableFaceBox: View {
                         showSnapGuides = true
                     }
                     
-                    // 🆕 향상된 드래그 로직
+                    // 🆕 Enhanced drag logic
                     let proposedOffset = value.translation
                     let constrainedOffset = constrainDragOffset(proposedOffset)
                     let snappedOffset = applySnapping(constrainedOffset)
@@ -107,30 +107,30 @@ struct EditableFaceBox: View {
                     dragOffset = snappedOffset
                     onDragChanged(dragOffset)
                     
-                    // 경계 검사
+                    // Boundary check
                     isDragInBounds = checkBounds(offset: dragOffset)
                     showDeleteButton = true
                 }
                 .onEnded { value in
-                    // 🆕 드래그 종료 시 최종 스냅 및 제약 적용
+                    // 🆕 Apply final snap and constraints when drag ends
                     let finalOffset = constrainDragOffset(dragOffset)
                     let finalSnappedOffset = applySnapping(finalOffset)
                     
-                    // 경계 밖에 있으면 경고 했틱
+                    // Warning haptic if outside boundary
                     if !checkBounds(offset: finalSnappedOffset) {
                         HapticManager.notification(.warning)
                     } else {
                         HapticManager.impact(.light)
                     }
                     
-                    // 상태 리셋
+                    // Reset state
                     dragOffset = .zero
                     showSnapGuides = false
                     isDragInBounds = true
                     
                     onDragEnded()
                     
-                    // 삭제 버튼 숨기기
+                    // Hide delete button
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                         withAnimation(.easeOut(duration: 0.3)) {
                             showDeleteButton = false
@@ -139,14 +139,14 @@ struct EditableFaceBox: View {
                 }
         )
         .onTapGesture {
-            // 탭하면 삭제 버튼 토글
+            // Tap to toggle delete button
             HapticManager.impact(.light)
             withAnimation(.easeInOut(duration: 0.2)) {
                 showDeleteButton.toggle()
             }
             
             if showDeleteButton {
-                // 3초 후 자동으로 숨기기
+                // Automatically hide after 3 seconds
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                     withAnimation(.easeOut(duration: 0.3)) {
                         showDeleteButton = false
@@ -160,7 +160,7 @@ struct EditableFaceBox: View {
     
     private var boxColor: Color {
         if face.isHighlighted {
-            return .highlightYellow  // 하이라이트 색상
+            return .highlightYellow  // Highlight color
         } else if face.isDragging {
             return .retroMint
         } else if face.isUserAdded {
@@ -172,7 +172,7 @@ struct EditableFaceBox: View {
     
     private var boxLineWidth: CGFloat {
         if face.isHighlighted {
-            return 4.0  // 하이라이트 시 두께 선
+            return 4.0  // Thick line when highlighted
         } else {
             return face.isDragging ? 3.0 : 2.5
         }
@@ -182,9 +182,9 @@ struct EditableFaceBox: View {
     
     // Badge size function - REMOVED (no longer needed)
     
-    // MARK: - 🆕 드래그 제약 및 스냅 함수들
+    // MARK: - 🆕 Drag constraint and snap functions
     
-    /// 드래그 오프셋을 이미지 경계 내로 제한
+    /// Constrain drag offset within image boundaries
     private func constrainDragOffset(_ offset: CGSize) -> CGSize {
         let currentBox = face.boundingBox
         let proposedBox = CGRect(
@@ -209,7 +209,7 @@ struct EditableFaceBox: View {
         )
     }
     
-    /// 스냅 적용 (가장자리 및 중앙선에 스냅)
+    /// Apply snapping (snap to edges and center lines)
     private func applySnapping(_ offset: CGSize) -> CGSize {
         let currentBox = face.boundingBox
         let proposedCenter = CGPoint(
@@ -219,7 +219,7 @@ struct EditableFaceBox: View {
         
         var snappedCenter = proposedCenter
         
-        // 이미지 중앙선에 스냅
+        // Snap to image center lines
         let imageCenterX = imageSize.width / 2
         let imageCenterY = imageSize.height / 2
         
@@ -237,10 +237,10 @@ struct EditableFaceBox: View {
             }
         }
         
-        // 가장자리에 스냅
+        // Snap to edges
         let edges = [
-            edgeSnapDistance + currentBox.width / 2,  // 좌측
-            imageSize.width - edgeSnapDistance - currentBox.width / 2,  // 우측
+            edgeSnapDistance + currentBox.width / 2,  // Left
+            imageSize.width - edgeSnapDistance - currentBox.width / 2,  // Right
         ]
         
         for edge in edges {
@@ -253,8 +253,8 @@ struct EditableFaceBox: View {
         }
         
         let verticalEdges = [
-            edgeSnapDistance + currentBox.height / 2,  // 상단
-            imageSize.height - edgeSnapDistance - currentBox.height / 2,  // 하단
+            edgeSnapDistance + currentBox.height / 2,  // Top
+            imageSize.height - edgeSnapDistance - currentBox.height / 2,  // Bottom
         ]
         
         for edge in verticalEdges {
@@ -272,7 +272,7 @@ struct EditableFaceBox: View {
         )
     }
     
-    /// 경계 내에 있는지 확인
+    /// Check if within boundaries
     private func checkBounds(offset: CGSize) -> Bool {
         let currentBox = face.boundingBox
         let proposedBox = CGRect(
@@ -304,8 +304,8 @@ struct EditableFaceBox_Previews: PreviewProvider {
                 face: sampleFace,
                 imageSize: CGSize(width: 300, height: 400),
                 index: 0,
-                offsetX: 0,  // ⭐️ offset 추가
-                offsetY: 0,  // ⭐️ offset 추가
+                offsetX: 0,  // ⭐️ Add offset
+                offsetY: 0,  // ⭐️ Add offset
                 onDragChanged: { _ in },
                 onDragEnded: { },
                 onDelete: { }

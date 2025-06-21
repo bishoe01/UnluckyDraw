@@ -290,7 +290,7 @@ extension FaceReviewIntegratedView {
                         updateImageSizeIfNeeded(geometry: geometry)
                     }
                 
-                // 편집 가능한 얼굴 박스들
+                // Editable face boxes
                 if imageSize != .zero {
                     let calculatedImageSize = calculateImageSize(geometry: geometry)
                     let offsetX = (geometry.size.width - calculatedImageSize.width) / 2
@@ -338,7 +338,7 @@ struct IntegratedBottomActionsView: View {
             if isProcessing {
                 VStack(spacing: 8) {}
             } else {
-                // 성공 상태 - 버튼들만 표시
+                // Success state - show buttons only
                 VStack(spacing: 12) {
                     HStack(spacing: 16) {
                         Button(action: onAddFace) {

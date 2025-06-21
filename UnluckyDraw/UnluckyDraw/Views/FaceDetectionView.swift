@@ -19,7 +19,7 @@ struct FaceDetectionView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            // 🎰 새로운 아케이드 스타일 얼굴 카운터!
+            // 🎰 New arcade-style face counter!
             ArcadeFaceCounter(
                 faceCount: detectedFaces.count,
                 isProcessing: isProcessing,
@@ -27,14 +27,14 @@ struct FaceDetectionView: View {
             )
             .padding(.top, 20)
             
-            // 자동 시작 안내 (필요시)
+            // Auto-start notification (if needed)
             if autoStart && !detectedFaces.isEmpty && !isProcessing && error == nil {
                 HStack(spacing: 8) {
                     Image(systemName: "timer")
                         .font(.caption)
                         .foregroundColor(.retroTeal)
                     
-                    Text("2초 후 자동 시작됩니다...")
+                    Text("Auto-starting in 2 seconds...")
                         .font(.caption)
                         .foregroundColor(.retroTeal)
                 }
@@ -117,7 +117,7 @@ struct FaceDetectionView: View {
         }
         .onAppear {
             if autoStart {
-                // 얼굴 인식 완료 후 2초 대기하고 자동으로 룰렛 시작
+                // Wait 2 seconds after face detection completes and auto-start roulette
                 startAutoStartTimer()
             }
         }
@@ -129,7 +129,7 @@ struct FaceDetectionView: View {
     private func startAutoStartTimer() {
         autoStartTimer?.invalidate()
         
-        // 얼굴이 감지되고 처리가 완료되면 자동 시작
+        // Auto-start when face detection is complete
         if !detectedFaces.isEmpty && !isProcessing && error == nil {
             autoStartTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { _ in
                 HapticManager.impact()
@@ -171,7 +171,7 @@ struct FaceOverlay: View {
     let imageSize: CGSize
     
     var body: some View {
-        // ⭐️ 새로운 좌표 변환 시스템 사용
+        // ⭐️ Using new coordinate transformation system
         let displayBox = face.displayBoundingBox(for: imageSize)
         
         Rectangle()
