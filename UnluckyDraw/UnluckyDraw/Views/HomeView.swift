@@ -46,12 +46,11 @@ struct HomeView: View {
                     }
                     .padding(.top, 40)
                     
-                    // Photo Draw Cards - 개선된 UI
                     VStack(spacing: 24) {
                         // 카메라 카드 - 레트로 청록 톤
                         EnhancedPhotoCard(
                             title: "Take New Photo",
-                            description: "Capture a group photo with your camera",
+                            description: "Capture a group photo",
                             icon: "camera.fill",
                             gradientColors: [Color.retroTeal, Color.retroDarkTeal],
                             action: {
@@ -63,7 +62,7 @@ struct HomeView: View {
                         // 갤러리 카드 - 레트로 보라 톤
                         EnhancedPhotoCard(
                             title: "Choose from Gallery",
-                            description: "Select an existing photo from your library",
+                            description: "photo from your library",
                             icon: "photo.on.rectangle.angled",
                             gradientColors: [Color.retroPurple, Color.retroDarkPurple],
                             action: {
@@ -89,17 +88,6 @@ struct HomeView: View {
             }
             .navigationBarHidden(true)
         }
-        // .fullScreenCover(item: $selectedMode) { mode in
-        //     switch mode {
-        //     case .photo:
-        //         // 이제 사용하지 않음 - 대신 위의 두 버튼 사용
-        //         EmptyView()
-        //     case .number:
-        //         NumberDrawView()
-        //     case .name:
-        //         NameDrawView()
-        //     }
-        // }
         .fullScreenCover(isPresented: $showingPhotoDrawCamera) {
             PhotoDrawView(initialSourceType: .camera)
         }
@@ -110,6 +98,7 @@ struct HomeView: View {
 }
 
 // MARK: - Enhanced Photo Card
+
 struct EnhancedPhotoCard: View {
     let title: String
     let description: String
@@ -173,6 +162,7 @@ struct EnhancedPhotoCard: View {
                         .lineLimit(2)
                 }
             }
+            .frame(maxWidth: .infinity) // 카드 너비를 최대로 설정
             .padding(.vertical, 32)
             .padding(.horizontal, 28)
             .background(
@@ -244,56 +234,6 @@ struct ModeCard: View {
         .buttonStyle(PlainButtonStyle())
     }
 }
-
-// MARK: - Placeholder Views - 임시 주석 처리
-
-// struct NumberDrawView: View {
-//     @Environment(\.dismiss) private var dismiss
-//     
-//     var body: some View {
-//         VStack {
-//             Text("Number Draw")
-//                 .font(.largeTitle)
-//                 .padding()
-//             
-//             Text("Coming Soon!")
-//                 .font(.headline)
-//                 .foregroundColor(.gray)
-//             
-//             Spacer()
-//             
-//             Button("Back") {
-//                 dismiss()
-//             }
-//             .buttonStyle()
-//             .padding()
-//         }
-//     }
-// }
-// 
-// struct NameDrawView: View {
-//     @Environment(\.dismiss) private var dismiss
-//     
-//     var body: some View {
-//         VStack {
-//             Text("Name Draw")
-//                 .font(.largeTitle)
-//                 .padding()
-//             
-//             Text("Coming Soon!")
-//                 .font(.headline)
-//                 .foregroundColor(.gray)
-//             
-//             Spacer()
-//             
-//             Button("Back") {
-//                 dismiss()
-//             }
-//             .buttonStyle()
-//             .padding()
-//         }
-//     }
-// }
 
 #Preview {
     HomeView()

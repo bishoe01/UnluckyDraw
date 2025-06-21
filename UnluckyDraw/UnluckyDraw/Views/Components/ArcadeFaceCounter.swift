@@ -38,6 +38,7 @@ struct ArcadeFaceCounter: View {
     }
     
     // MARK: - Processing View
+
     private var processingView: some View {
         VStack(spacing: 12) {
             // 스캔 애니메이션 아이콘
@@ -83,6 +84,7 @@ struct ArcadeFaceCounter: View {
     }
     
     // MARK: - Error View
+
     private var errorView: some View {
         VStack(spacing: 12) {
             ZStack {
@@ -115,6 +117,7 @@ struct ArcadeFaceCounter: View {
     }
     
     // MARK: - Success View (메인 이벤트!)
+
     private var successView: some View {
         VStack(spacing: 20) {
             // 메인 카운터 디스플레이
@@ -168,7 +171,7 @@ struct ArcadeFaceCounter: View {
                     // 얼굴 아이콘 스택
                     VStack(spacing: 4) {
                         ZStack {
-                            ForEach(0..<min(animatedCount, 4), id: \.self) { index in
+                            ForEach(0 ..< min(animatedCount, 4), id: \.self) { index in
                                 Image(systemName: "person.crop.circle.fill")
                                     .font(.system(size: 16, weight: .bold))
                                     .foregroundColor(countColor)
@@ -179,7 +182,7 @@ struct ArcadeFaceCounter: View {
                                     .scaleEffect(bounceScale)
                                     .animation(
                                         .spring(response: 0.5, dampingFraction: 0.6)
-                                        .delay(Double(index) * 0.1),
+                                            .delay(Double(index) * 0.1),
                                         value: bounceScale
                                     )
                             }
@@ -224,12 +227,6 @@ struct ArcadeFaceCounter: View {
                                     .offset(y: 8)
                             }
                         }
-                        
-                        Text(countMessage)
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.adaptiveSecondaryLabel)
-                            .tracking(0.5)
                     }
                 }
             }
@@ -240,11 +237,6 @@ struct ArcadeFaceCounter: View {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.title2)
                         .foregroundColor(.winnerGreen)
-                    
-                    Text(successMessage)
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.adaptiveLabel)
                 }
                 .scaleEffect(bounceScale)
                 .animation(.spring(response: 0.5, dampingFraction: 0.6).delay(0.3), value: bounceScale)
@@ -269,34 +261,6 @@ struct ArcadeFaceCounter: View {
             return .primaryOrange
         default:
             return .primaryRed
-        }
-    }
-    
-    private var countMessage: String {
-        switch animatedCount {
-        case 0:
-            return ""
-        case 1:
-            return "발견!"
-        case 2...4:
-            return "좋아요!"
-        case 5...8:
-            return "대박!"
-        default:
-            return "와우!"
-        }
-    }
-    
-    private var successMessage: String {
-        switch animatedCount {
-        case 1:
-            return "1명 발견! 룰렛 준비 완료"
-        case 2...4:
-            return "\(animatedCount)명 발견! 완벽한 인원이에요"
-        case 5...8:
-            return "\(animatedCount)명 발견! 치열한 경쟁이 될 듯!"
-        default:
-            return "\(animatedCount)명 발견! 엄청난 인원이네요!"
         }
     }
     
