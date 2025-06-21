@@ -19,33 +19,22 @@ struct HomeView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // 🌌 Dynamic Dark Background matching ResultView
                 animatedBackground
                 
-                VStack(spacing: 40) {
-                    // 🎯 Dramatic Header with animations
+                VStack(spacing: 25) {
                     headerSection
                     
-                    // 🎮 Enhanced Action Cards
                     actionCardsSection
                     
                     Spacer()
-                    
-                    // 🎲 Footer with personality
                     footerSection
+                    Spacer()
                 }
-                .animation(.none) // 완전히 모든 애니메이션 비활성화
-                .transition(.identity) // 전환 비활성화
             }
             .navigationBarHidden(true)
-            .animation(.none) // NavigationView 애니메이션 비활성화
-            .transition(.identity) // NavigationView 전환 비활성화
-            .onAppear {
-                startAnimations()
-            }
         }
-        .animation(.none) // 전체 비활성화
-        .transition(.identity) // 전체 전환 비활성화
+        .animation(.none)
+        .transition(.identity)
         .fullScreenCover(isPresented: $showingPhotoDrawCamera) {
             PhotoDrawView(initialSourceType: .camera)
         }
@@ -88,54 +77,66 @@ struct HomeView: View {
     
     private var headerSection: some View {
         VStack(spacing: 20) {
-            // 💀 Skull logo with rotation
             ZStack {
-                // Glow effect
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [Color.red.opacity(0.3), Color.clear],
-                            center: .center,
-                            startRadius: 5,
-                            endRadius: 60
-                        )
-                    )
-                    .frame(width: 120, height: 120)
-                    .scaleEffect(pulseAnimation ? 1.2 : 0.8)
-                
-                Text("💀")
-                    .font(.system(size: 70))
-                    .rotationEffect(.degrees(logoRotation))
-                    .shadow(color: .red.opacity(0.8), radius: 10)
+                ZStack {
+                    Text("💀")
+                        .font(.system(size: 75))
+                        .rotationEffect(.degrees(logoRotation))
+                        .shadow(color: .black.opacity(0.8), radius: 8, x: 0, y: 4)
+                        .shadow(color: .red.opacity(0.6), radius: 15, x: 0, y: 8)
+                        
+                    Text("⚡")
+                        .font(.system(size: 20))
+                        .foregroundColor(.orange)
+                        .offset(x: 35, y: -10)
+                        .opacity(pulseAnimation ? 1.0 : 0.3)
+                        .rotationEffect(.degrees(-logoRotation))
+                        
+                    Text("⚡")
+                        .font(.system(size: 16))
+                        .foregroundColor(.red)
+                        .offset(x: -30, y: 15)
+                        .opacity(pulseAnimation ? 0.8 : 0.2)
+                        .rotationEffect(.degrees(-logoRotation * 0.5))
+                }
             }
             
-            // App title with dramatic styling
             VStack(spacing: 8) {
                 Text("UNLUCKY")
                     .font(.system(size: 32, weight: .black, design: .rounded))
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [.white, .gray.opacity(0.8)],
+                            colors: [.white, .white.opacity(0.95)],
                             startPoint: .top,
                             endPoint: .bottom
                         )
                     )
                     .tracking(4)
+                    .shadow(color: .black.opacity(0.8), radius: 8, x: 0, y: 4)
+                    .shadow(color: .black.opacity(0.6), radius: 16, x: 0, y: 8)
+                    .overlay(
+                        Text("UNLUCKY")
+                            .font(.system(size: 32, weight: .black, design: .rounded))
+                            .foregroundColor(.black.opacity(0.3))
+                            .tracking(4)
+                            .blur(radius: 1)
+                            .offset(x: 1, y: 1)
+                    )
                 
                 Text("DRAW")
                     .font(.system(size: 32, weight: .black, design: .rounded))
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [.red, .orange.opacity(0.8)],
+                            colors: [.red, .orange.opacity(0.9)],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
                     )
                     .tracking(4)
-                    .shadow(color: .red.opacity(0.5), radius: 8)
+                    .shadow(color: .black.opacity(0.8), radius: 8, x: 0, y: 4)
+                    .shadow(color: .red.opacity(0.6), radius: 12, x: 0, y: 6)
             }
             
-            // Subtitle with typewriter effect feel
             Text("Who will face the skull? 💀")
                 .font(.headline)
                 .foregroundColor(.white.opacity(0.7))
@@ -214,8 +215,6 @@ struct HomeView: View {
         }
     }
 }
-
-// MARK: - Enhanced Action Card
 
 struct EnhancedActionCard: View {
     let title: String
@@ -351,8 +350,6 @@ struct EnhancedActionCard: View {
         }
     }
 }
-
-// MARK: - Legacy Components (for compatibility)
 
 struct EnhancedPhotoCard: View {
     let title: String

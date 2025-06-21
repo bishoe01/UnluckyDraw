@@ -12,7 +12,7 @@ struct FaceReviewIntegratedView: View {
     @ObservedObject var faceDetectionController: FaceDetectionController
     let onNext: () -> Void
     let onBack: () -> Void
-    let onRetakePhoto: () -> Void // 새로운 콜백 추가
+    let onRetakePhoto: () -> Void
     
     @State private var imageSize: CGSize = .zero
     @State private var showingAddConfirmation = false
@@ -20,7 +20,6 @@ struct FaceReviewIntegratedView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            // 🎰 얼굴 감지 성공 시에만 카운터 표시
             if !faceDetectionController.isProcessing && faceDetectionController.error == nil && !faceDetectionController.editableFaces.isEmpty {
                 ArcadeFaceCounter(
                     faceCount: faceDetectionController.editableFaces.count,
@@ -30,25 +29,20 @@ struct FaceReviewIntegratedView: View {
                 .padding(.top, 10)
             }
             
-            // Main Content - 이미지와 편집 가능한 얼굴 박스들
             if faceDetectionController.isProcessing {
-                // 🔍 얼굴 인식 진행 중 상태
                 processingStateView
             } else if faceDetectionController.error != nil {
-                // ❌ 얼굴 감지 실패 상태 (통합된 에러 UI)
                 noFacesDetectedView
             } else {
-                // ✅ 정상 상태 - 이미지와 편집 박스들
                 normalStateImageView
             }
             
             Spacer()
             
-            // Bottom Actions - 에러 상태가 아닐 때만 표시
             if faceDetectionController.error == nil {
                 IntegratedBottomActionsView(
                     isProcessing: faceDetectionController.isProcessing,
-                    hasError: false, // 에러는 위에서 처리하므로 항상 false
+                    hasError: false,
                     faceCount: faceDetectionController.editableFaces.count,
                     onStart: startRoulette,
                     onAddFace: addNewFace,
@@ -70,8 +64,6 @@ struct FaceReviewIntegratedView: View {
             Text("Add a new face box for someone who wasn't detected automatically.")
         }
     }
-    
-    // MARK: - Functions
     
     private func calculateImageSize(geometry: GeometryProxy) -> CGSize {
         let maxWidth = geometry.size.width
@@ -100,10 +92,8 @@ struct FaceReviewIntegratedView: View {
         if imageSize != newImageSize {
             imageSize = newImageSize
             
-            // ⭐️ FaceDetectionController의 currentImageSize도 업데이트
             faceDetectionController.currentImageSize = newImageSize
             
-            // 얼굴 인식이 완료되었고 editableFaces가 비어있다면 변환
             if !faceDetectionController.isProcessing &&
                 !faceDetectionController.detectedFaces.isEmpty &&
                 faceDetectionController.editableFaces.isEmpty
@@ -114,12 +104,10 @@ struct FaceReviewIntegratedView: View {
     }
     
     private func setupIntegratedMode() {
-        // ⭐️ FaceDetectionController의 currentImageSize 업데이트
         if imageSize != .zero {
             faceDetectionController.currentImageSize = imageSize
         }
         
-        // 이미지 크기가 설정되어 있고 얼굴 인식이 완료되었다면 변환
         if imageSize != .zero && !faceDetectionController.detectedFaces.isEmpty && faceDetectionController.editableFaces.isEmpty {
             faceDetectionController.convertToEditableFaces(imageSize: imageSize)
         }
@@ -147,11 +135,8 @@ struct FaceReviewIntegratedView: View {
     private func retryDetection() {
         HapticManager.impact(.medium)
         
-        // 🎯 부드러운 전환을 위해 애니메이션과 함께 처리
-        // 완전히 상태 초기화
         faceDetectionController.clearResults()
         
-        // 약간의 지연 후 다시 얼굴 인식 시작 (안정적인 UI 전환을 위해)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             self.faceDetectionController.detectFaces(in: self.image)
         }
@@ -161,11 +146,9 @@ struct FaceReviewIntegratedView: View {
 // MARK: - State Views
 
 extension FaceReviewIntegratedView {
-    // 🔍 얼굴 인식 진행 중 상태
     private var processingStateView: some View {
         GeometryReader { geometry in
             ZStack {
-                // 배경 이미지
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
@@ -178,15 +161,12 @@ extension FaceReviewIntegratedView {
                         updateImageSizeIfNeeded(geometry: geometry)
                     }
                 
-                // 처리 중 오버레이
                 Rectangle()
                     .fill(Color.black.opacity(0.4))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .cornerRadius(12)
                 
-                // 스캔 애니메이션
                 VStack(spacing: 20) {
-                    // 스캔 아이콘
                     ZStack {
                         Circle()
                             .stroke(Color.retroTeal.opacity(0.3), lineWidth: 3)
@@ -230,12 +210,10 @@ extension FaceReviewIntegratedView {
         .padding(.horizontal, 20)
     }
     
-    // ❌ 얼굴 감지 실패 상태 (통합된 에러 UI)
     var noFacesDetectedView: some View {
         VStack(spacing: 30) {
             Spacer()
             
-            // 에러 아이콘
             VStack(spacing: 20) {
                 ZStack {
                     Circle()
@@ -268,9 +246,7 @@ extension FaceReviewIntegratedView {
             
             Spacer()
             
-            // 액션 버튼들
             VStack(spacing: 16) {
-                // 다시 촬영 버튼 (메인)
                 Button(action: onRetakePhoto) {
                     HStack(spacing: 12) {
                         Image(systemName: "camera.fill")
@@ -299,11 +275,9 @@ extension FaceReviewIntegratedView {
         .padding(.horizontal, 30)
     }
     
-    // ✅ 정상 상태 - 이미지와 편집 박스들
     var normalStateImageView: some View {
         GeometryReader { geometry in
             ZStack {
-                // 배경 이미지
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
@@ -360,18 +334,13 @@ struct IntegratedBottomActionsView: View {
     let onRetakePhoto: () -> Void
     
     var body: some View {
-        // 에러 상태는 상위에서 처리하므로 여기서는 정상 상태만 처리
         VStack(spacing: 8) {
             if isProcessing {
-                // 프로세싱 중에는 버튼 숨김
-                VStack(spacing: 8) {
-                    // 비어있음
-                }
+                VStack(spacing: 8) {}
             } else {
                 // 성공 상태 - 버튼들만 표시
                 VStack(spacing: 12) {
                     HStack(spacing: 16) {
-                        // Add More Button (always visible)
                         Button(action: onAddFace) {
                             HStack(spacing: 8) {
                                 Image(systemName: "plus")
@@ -389,7 +358,6 @@ struct IntegratedBottomActionsView: View {
                             )
                         }
                         
-                        // Start Button (only when faces available)
                         if faceCount > 0 {
                             Button(action: onStart) {
                                 HStack(spacing: 8) {
@@ -423,6 +391,6 @@ struct IntegratedBottomActionsView: View {
         faceDetectionController: FaceDetectionController(),
         onNext: {},
         onBack: {},
-        onRetakePhoto: {} // 새로운 콜백 추가
+        onRetakePhoto: {}
     )
 }
