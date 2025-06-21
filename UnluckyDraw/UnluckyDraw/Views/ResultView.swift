@@ -15,6 +15,9 @@ struct ResultView: View {
     let onClose: () -> Void
     
     @State private var showAnimation = false
+    @State private var isSaving = false
+    @State private var saveResult: Result<Void, ImageSaveError>? = nil
+    @State private var showSaveAlert = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -60,63 +63,98 @@ struct ResultView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 15)
             
-            // 정보 카드 대폭 제거 (필요하면 그냥 간단하게 유지)
-            // 삭제됨
-            
             Spacer(minLength: 10)
             
-            // Action Buttons (좌우 배치 옵션)
-            HStack(spacing: 12) {
-                // 메인으로 돌아가기 버튼
-                Button(action: {
-                    HapticManager.selection()
-                    onClose()
-                }) {
-                    VStack(spacing: 8) {
-                        Image(systemName: "house.fill")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                        Text("Home")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                    }
-                    .foregroundColor(.adaptiveLabel)
-                    .padding(.vertical, 20)
-                    .frame(maxWidth: .infinity)
-                    .background(Color.adaptiveSecondaryBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.adaptiveSeparator, lineWidth: 1)
-                    )
-                    .cornerRadius(14)
-                    .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-                }
-                
-                // 다시 뛡기 버튼
-                Button(action: {
-                    HapticManager.impact()
-                    onPlayAgain()
-                }) {
-                    VStack(spacing: 8) {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                        Text("Try Again")
-                            .font(.subheadline)
+            // Action Buttons (3개 버튼으로 확장)
+            VStack(spacing: 12) {
+                // 📷 사진 저장 버튼 (상단에 큰 버튼으로)
+                Button(action: saveImageWithFrame) {
+                    HStack(spacing: 12) {
+                        if isSaving {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                                .tint(.white)
+                        } else {
+                            Image(systemName: "camera.fill")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                        }
+                        
+                        Text(isSaving ? "Saving..." : "Save Photo")
+                            .font(.headline)
                             .fontWeight(.semibold)
                     }
                     .foregroundColor(.white)
-                    .padding(.vertical, 20)
+                    .padding(.vertical, 18)
                     .frame(maxWidth: .infinity)
                     .background(
                         LinearGradient(
-                            gradient: Gradient(colors: [.gray.opacity(0.8), .gray.opacity(0.6)]),
+                            gradient: Gradient(colors: [
+                                Color.unluckyRed.opacity(0.9),
+                                Color.unluckyDarkRed.opacity(0.8)
+                            ]),
                             startPoint: .leading,
                             endPoint: .trailing
                         )
                     )
-                    .cornerRadius(14)
-                    .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+                    .cornerRadius(16)
+                    .shadow(color: Color.unluckyRed.opacity(0.4), radius: 8, x: 0, y: 4)
+                    .disabled(isSaving)
+                }
+                
+                // 하단 버튼들 (홈, 다시하기)
+                HStack(spacing: 12) {
+                    // 메인으로 돌아가기 버튼
+                    Button(action: {
+                        HapticManager.selection()
+                        onClose()
+                    }) {
+                        VStack(spacing: 8) {
+                            Image(systemName: "house.fill")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                            Text("Home")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                        }
+                        .foregroundColor(.adaptiveLabel)
+                        .padding(.vertical, 18)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.adaptiveSecondaryBackground)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Color.adaptiveSeparator, lineWidth: 1)
+                        )
+                        .cornerRadius(14)
+                        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                    }
+                    
+                    // 다시 뽑기 버튼
+                    Button(action: {
+                        HapticManager.impact()
+                        onPlayAgain()
+                    }) {
+                        VStack(spacing: 8) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                            Text("Try Again")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                        }
+                        .foregroundColor(.white)
+                        .padding(.vertical, 18)
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            LinearGradient(
+                                gradient: Gradient(colors: [.gray.opacity(0.8), .gray.opacity(0.6)]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .cornerRadius(14)
+                        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+                    }
                 }
             }
             .padding(.horizontal, 20)
@@ -138,8 +176,61 @@ struct ResultView: View {
         .onAppear {
             showAnimation = true
             
-            // 강한 햄틱 피드백 ("어! 걸렸네!" 느낌)
+            // 강한 햅틱 피드백 ("어! 걸렸네!" 느낌)
             HapticManager.notification(.warning)
+        }
+        .alert("Photo Save Result", isPresented: $showSaveAlert) {
+            Button("OK") {
+                saveResult = nil
+            }
+            if case .failure(let error) = saveResult, case .permissionDenied = error {
+                Button("Settings") {
+                    openAppSettings()
+                }
+            }
+        } message: {
+            if let result = saveResult {
+                switch result {
+                case .success:
+                    Text("✅ Photo saved successfully to your photo library!")
+                case .failure(let error):
+                    Text(error.userFriendlyMessage)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Save Image Function
+    
+    private func saveImageWithFrame() {
+        guard !isSaving else { return }
+        
+        isSaving = true
+        HapticManager.impact(.medium)
+        
+        ImageSaveManager.shared.saveImageWithWinnerFrame(
+            originalImage: image,
+            winner: winner
+        ) { result in
+            isSaving = false
+            saveResult = result
+            showSaveAlert = true
+            
+            // 햅틱 피드백
+            switch result {
+            case .success:
+                HapticManager.notification(.success)
+                SoundManager.shared.playCompleteSound()
+            case .failure:
+                HapticManager.notification(.error)
+                SoundManager.shared.playErrorSound()
+            }
+        }
+    }
+    
+    private func openAppSettings() {
+        if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(settingsUrl)
         }
     }
     
@@ -193,6 +284,8 @@ struct ResultView: View {
         return min(100, confidenceScore + positionScore + randomBonus)
     }
 }
+
+
 
 // MARK: - Large Winner Display (재미있고 임팩트 있게!)
 
