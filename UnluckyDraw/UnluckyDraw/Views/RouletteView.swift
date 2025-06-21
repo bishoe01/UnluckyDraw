@@ -467,9 +467,40 @@ struct EnhancedFixedFrameOverlay: View {
     let currentPhase: Int
     
     var body: some View {
-        let displayBox = face.displayBoundingBox(for: imageSize)
+        // 정확한 좌표 변환 (ImageSaveManager와 동일한 로직)
+        let visionRect = face.boundingBox
+        
+        // Vision 좌표를 UIKit 좌표로 변환
+        let faceRect = CGRect(
+            x: visionRect.origin.x * imageSize.width,
+            y: (1.0 - visionRect.origin.y - visionRect.height) * imageSize.height, // Y축 뒤집기
+            width: visionRect.width * imageSize.width,
+            height: visionRect.height * imageSize.height
+        )
+        
+        // 미세한 오차를 보정하기 위해 프레임을 약간 확장 (1-2픽셀)
+        let expandedSpotlightRect = CGRect(
+            x: faceRect.origin.x - 1,
+            y: faceRect.origin.y - 1,
+            width: faceRect.width + 2,
+            height: faceRect.height + 2
+        )
+        
+        // 미세한 오차를 보정하기 위해 프레임을 약간 확장 (1-2픽셀)
+        let expandedFaceRect = CGRect(
+            x: faceRect.origin.x - 1,
+            y: faceRect.origin.y - 1,
+            width: faceRect.width + 2,
+            height: faceRect.height + 2
+        )
+        
+        // 컨테이너 중앙 정렬을 위한 정확한 offset 계산
         let offsetX = (containerSize.width - imageSize.width) / 2
         let offsetY = (containerSize.height - imageSize.height) / 2
+        
+        // 추가적인 미세 조정 (패딩 및 경계 보정)
+        let adjustedOffsetX = offsetX
+        let adjustedOffsetY = offsetY
         
         RoundedRectangle(cornerRadius: 12)
             .stroke(
@@ -484,12 +515,12 @@ struct EnhancedFixedFrameOverlay: View {
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 ),
-                lineWidth: isHighlighted ? (currentPhase == 3 ? 4 + tensionLevel * 2 : 3) : 1
+                lineWidth: isHighlighted ? (currentPhase == 3 ? 6 : 4) : 2  // 둘께 변화 최소화
             )
-            .frame(width: displayBox.width, height: displayBox.height)
+            .frame(width: expandedFaceRect.width, height: expandedFaceRect.height)
             .position(
-                x: displayBox.midX + offsetX,
-                y: displayBox.midY + offsetY
+                x: expandedFaceRect.midX + adjustedOffsetX,
+                y: expandedFaceRect.midY + adjustedOffsetY
             )
             .shadow(
                 color: isHighlighted ? 
@@ -497,7 +528,8 @@ struct EnhancedFixedFrameOverlay: View {
                     Color.clear,
                 radius: isHighlighted ? (currentPhase == 3 ? 15 + tensionLevel * 10 : 10) : 0
             )
-            .scaleEffect(isHighlighted ? (currentPhase == 3 ? 1.05 + tensionLevel * 0.05 : 1.02) : 1.0)
+            // scaleEffect 제거 - 이것이 위치 오차의 원인!
+            // .scaleEffect(isHighlighted ? (currentPhase == 3 ? 1.05 + tensionLevel * 0.05 : 1.02) : 1.0)
             .animation(.easeInOut(duration: 0.15), value: isHighlighted)
             .animation(.easeInOut(duration: 0.2), value: tensionLevel)
     }
@@ -512,7 +544,26 @@ struct EnhancedSpotlightOverlay: View {
     let currentPhase: Int
     
     var body: some View {
-        let displayBox = face.displayBoundingBox(for: imageSize)
+        // 정확한 좌표 변환 (ImageSaveManager와 동일한 로직)
+        let visionRect = face.boundingBox
+        
+        // Vision 좌표를 UIKit 좌표로 변환
+        let faceRect = CGRect(
+            x: visionRect.origin.x * imageSize.width,
+            y: (1.0 - visionRect.origin.y - visionRect.height) * imageSize.height, // Y축 뒤집기
+            width: visionRect.width * imageSize.width,
+            height: visionRect.height * imageSize.height
+        )
+        
+        // 미세한 오차를 보정하기 위해 프레임을 약간 확장 (1-2픽셀)
+        let expandedSpotlightRect = CGRect(
+            x: faceRect.origin.x - 1,
+            y: faceRect.origin.y - 1,
+            width: faceRect.width + 2,
+            height: faceRect.height + 2
+        )
+        
+        // 컨테이너 중앙 정렬을 위한 offset 계산
         let offsetX = (containerSize.width - imageSize.width) / 2
         let offsetY = (containerSize.height - imageSize.height) / 2
         
@@ -524,10 +575,10 @@ struct EnhancedSpotlightOverlay: View {
             .clipped()
             .mask(
                 RoundedRectangle(cornerRadius: 12)
-                    .frame(width: displayBox.width, height: displayBox.height)
+                    .frame(width: expandedSpotlightRect.width, height: expandedSpotlightRect.height)
                     .position(
-                        x: displayBox.midX + offsetX,
-                        y: displayBox.midY + offsetY
+                        x: expandedSpotlightRect.midX + offsetX,
+                        y: expandedSpotlightRect.midY + offsetY
                     )
             )
             .saturation(currentPhase == 3 ? 1.5 + tensionLevel * 0.5 : 1.2)
