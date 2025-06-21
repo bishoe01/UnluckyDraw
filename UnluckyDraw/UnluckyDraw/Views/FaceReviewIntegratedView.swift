@@ -155,27 +155,19 @@ struct FaceReviewIntegratedView: View {
             // ⭐️ FaceDetectionController의 currentImageSize도 업데이트
             faceDetectionController.currentImageSize = newImageSize
             
-            // ⭐️ 디버깅 로그 추가
-            print("📊 FaceReviewIntegratedView - Image size changed:")
-            print("  Original image: \(image.size)")
-            print("  Container: \(geometry.size)")
-            print("  Calculated display: \(newImageSize)")
-            print("  Image aspect: \(String(format: "%.3f", image.size.width / image.size.height))")
-            print("  Container aspect: \(String(format: "%.3f", geometry.size.width / geometry.size.height))")
+
             
             // 얼굴 인식이 완료되었고 editableFaces가 비어있다면 변환
             if !faceDetectionController.isProcessing &&
                 !faceDetectionController.detectedFaces.isEmpty &&
                 faceDetectionController.editableFaces.isEmpty
             {
-                print("🔄 Converting detected faces to editable faces...")
                 faceDetectionController.convertToEditableFaces(imageSize: newImageSize)
             }
         }
     }
     
     private func setupIntegratedMode() {
-        print("🔍 Setting up integrated face detection and review mode")
         
         // ⭐️ FaceDetectionController의 currentImageSize 업데이트
         if imageSize != .zero {
@@ -202,18 +194,15 @@ struct FaceReviewIntegratedView: View {
     
     private func startRoulette() {
         guard !faceDetectionController.editableFaces.isEmpty else {
-            print("⚠️ Cannot start roulette: no faces available")
             return
         }
         
         HapticManager.impact(.heavy)
-        print("🎰 Starting roulette with \(faceDetectionController.editableFaces.count) faces")
         onNext()
     }
     
     private func retryDetection() {
         HapticManager.impact(.medium)
-        print("🔄 Retrying face detection")
         
         // 🎯 부드러운 전환을 위해 애니메이션과 함께 처리
         // 완전히 상태 초기화

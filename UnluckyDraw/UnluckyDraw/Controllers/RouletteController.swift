@@ -67,7 +67,6 @@ class RouletteController: ObservableObject {
     }
     
     private func startPhase2() {
-        print("⚡ Phase 2: 좀 느려짐 (\(phase2Duration)초)")
         currentPhase = 2
         tensionLevel = 0.5
         startGradualSlowdown(from: phase2StartSpeed, to: phase2EndSpeed, duration: phase2Duration)
@@ -145,7 +144,7 @@ class RouletteController: ObservableObject {
                 self.spinningSpeed = currentStepSpeed
                 self.restartSpinTimer()
                 
-                print("🎰 Phase \(self.currentPhase) - Step \(step + 1)/\(slowdownSteps): speed = \(String(format: "%.3f", currentStepSpeed))초")
+
             }
         }
     }
@@ -169,7 +168,7 @@ class RouletteController: ObservableObject {
                 
                 self.tensionLevel = min(1.0, 0.8 + progress * 0.2)
                 
-                print("🎯 FINAL SELECTION - Step \(step + 1)/\(slowdownSteps): speed = \(String(format: "%.3f", currentStepSpeed))초")
+
             }
         }
     }

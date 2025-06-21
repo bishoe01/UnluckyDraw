@@ -79,8 +79,6 @@ struct PhotoDrawView: View {
                                     sourceType: initialSourceType // 파라미터 사용
                                 )
                                 .onAppear {
-                                    let sourceTypeName = initialSourceType == .camera ? "Camera" : "Gallery"
-                                    print("📷 \(sourceTypeName) view appeared, opening \(sourceTypeName) immediately")
                                     
                                     // 초기화 후 진행
                                     imageSourceManager.resetState()
@@ -126,7 +124,6 @@ struct PhotoDrawView: View {
                                 }
                             )
                             .onAppear {
-                                print("🔍 Starting integrated face detection and review")
                                 if faceDetectionController.detectedFaces.isEmpty {
                                     faceDetectionController.detectFaces(in: image)
                                 }
@@ -175,12 +172,7 @@ struct PhotoDrawView: View {
             currentStep = .imageCapture
         }
         .onChange(of: imageSourceManager.selectedImage) { _, newImage in
-            print("📷 Image change detected: \(newImage != nil ? "SUCCESS" : "CLEARED")")
             if let image = newImage {
-                print("📷 Image details:")
-                print("  Size: \(image.size)")
-                print("  Source: \(initialSourceType == .camera ? "Camera" : "Gallery")")
-                print("🔄 Transitioning to integrated face review immediately")
                 
                 // 사진 선택 후 바로 통합 페이지로 이동
                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -190,7 +182,6 @@ struct PhotoDrawView: View {
         }
         .onChange(of: rouletteController.winner) { _, newWinner in
             if newWinner != nil {
-                print("🏆 Winner found, transitioning to result")
                 // 안정적인 전환을 위해 약간 지연
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
                     withAnimation(.easeInOut(duration: 0.5)) {
@@ -219,13 +210,11 @@ struct PhotoDrawView: View {
     // proceedToImageCapture() 함수 제거 - 더 이상 필요없음
     
     private func proceedToRoulette() {
-        // 🆕 통합 페이지에서 바로 룰렛으로
+        // 🆕 통합 페이지에서 바로 룰렟으로
         let finalFaces = faceDetectionController.getEditedFacesAsDetected()
         guard !finalFaces.isEmpty else {
-            print("⚠️ Cannot proceed to roulette: no faces available")
             return
         }
-        print("🎰 Proceeding to roulette with \(finalFaces.count) edited faces")
         
         // 편집된 얼굴들로 detectedFaces 업데이트
         faceDetectionController.detectedFaces = finalFaces
@@ -233,24 +222,19 @@ struct PhotoDrawView: View {
     }
     
     private func proceedToResult() {
-        print("🏆 Proceeding to result")
         currentStep = .result
     }
     
     private func resetAndStart() {
-        print("🔄 Resetting app state")
         imageSourceManager.resetState()
         faceDetectionController.clearResults()
         rouletteController.reset()
         
         // 카메라와 갤러리 모두 바로 imageCapture로 시작
         currentStep = .imageCapture
-        print("✅ App state reset completed")
     }
     
     private func retakePhoto() {
-        let sourceTypeName = initialSourceType == .camera ? "camera" : "gallery"
-        print("📷 Retaking photo - clearing current image and going back to \(sourceTypeName)")
         
         // 🎯 부드러운 전환을 위해 애니메이션과 함께 처리
         withAnimation(.easeInOut(duration: 0.3)) {
@@ -263,7 +247,7 @@ struct PhotoDrawView: View {
             self.faceDetectionController.clearResults()
         }
         
-        print("✅ Successfully returned to \(sourceTypeName) for retake")
+
     }
 }
 

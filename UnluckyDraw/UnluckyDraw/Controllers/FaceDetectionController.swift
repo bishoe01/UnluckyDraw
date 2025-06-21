@@ -58,7 +58,7 @@ class FaceDetectionController: ObservableObject {
             faceDetectionRequest?.usesCPUOnly = false // GPU 가속 활용
         }
         
-        print("🤖 Face Detection initialized with max performance settings")
+
     }
     
     func detectFaces(in image: UIImage) {
@@ -71,9 +71,7 @@ class FaceDetectionController: ObservableObject {
         error = nil
         detectedFaces.removeAll()
         
-        print("🔍 Processing image for face detection:")
-        print("  Original size: \(image.size)")
-        print("  Original orientation: \(image.imageOrientation.rawValue)")
+
         
         // 이미지 전처리는 그대로 유지하지만, 방향 정보를 보존
         let processedImage = preprocessImageForDetection(cgImage)
@@ -87,7 +85,7 @@ class FaceDetectionController: ObservableObject {
             options: [:]
         )
         
-        print("🔍 Vision processing with orientation: \(imageOrientation.rawValue)")
+
         
         // ⭐️ 원본 이미지를 저장 (나중에 얼굴 크롭용)
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -108,7 +106,6 @@ class FaceDetectionController: ObservableObject {
                 }
             } catch {
                 DispatchQueue.main.async {
-                    print("❌ Face detection failed: \(error)")
                     self?.error = .processingFailed
                     self?.isProcessing = false
                 }
@@ -186,7 +183,6 @@ class FaceDetectionController: ObservableObject {
         
         if let error = error {
             self.error = .processingFailed
-            print("Face detection error: \(error.localizedDescription)")
             return
         }
         
@@ -197,7 +193,6 @@ class FaceDetectionController: ObservableObject {
         
         if results.isEmpty {
             self.error = .noFacesDetected
-            print("⚠️ No faces detected in image")
             return
         }
         
@@ -208,28 +203,24 @@ class FaceDetectionController: ObservableObject {
             
             // 1. 신뢰도 검사 (더 엄격하게)
             guard confidence > 0.4 else {
-                print("❌ Rejected face with low confidence: \(String(format: "%.2f", confidence))")
                 return nil
             }
             
             // 2. 얼굴 크기 검사 (너무 작은 얼굴 제외)
             let faceArea = boundingBox.width * boundingBox.height
             guard faceArea > 0.01 else { // 전체 이미지의 1% 이상
-                print("❌ Rejected face with small area: \(String(format: "%.4f", faceArea))")
                 return nil
             }
             
             // 3. 얼굴 비율 검사 (너무 길거나 넩은 얼굴 제외)
             let aspectRatio = boundingBox.width / boundingBox.height
             guard aspectRatio > 0.5 && aspectRatio < 2.0 else {
-                print("❌ Rejected face with invalid aspect ratio: \(String(format: "%.2f", aspectRatio))")
                 return nil
             }
             
             // 4. 얼굴 위치 검사 (이미지 밖으로 너무 많이 나간 얼굴 제외)
             guard boundingBox.minX >= -0.1 && boundingBox.maxX <= 1.1 &&
                   boundingBox.minY >= -0.1 && boundingBox.maxY <= 1.1 else {
-                print("❌ Rejected face outside image bounds")
                 return nil
             }
             
@@ -239,7 +230,7 @@ class FaceDetectionController: ObservableObject {
                 confidence: confidence
             )
             
-            print("✅ Accepted face: confidence=\(String(format: "%.2f", confidence)), area=\(String(format: "%.4f", faceArea)), ratio=\(String(format: "%.2f", aspectRatio))")
+
             
             return face
         }
@@ -247,10 +238,6 @@ class FaceDetectionController: ObservableObject {
         // 필터링 후에도 얼굴이 없으면 에러
         if faces.isEmpty {
             self.error = .noFacesDetected
-            print("⚠️ No valid faces found after filtering")
-            if !results.isEmpty {
-                print("  Original detections were filtered out due to quality criteria")
-            }
             return
         }
         
@@ -263,21 +250,11 @@ class FaceDetectionController: ObservableObject {
             SoundManager.shared.playCompleteSound()
         }
         
-        // 디버깅 정보 출력
-        print("🎯 Face Detection Results:")
-        print("  • Total detected: \(results.count)")
-        print("  • Filtered faces: \(faces.count)")
-        
-        for (index, face) in faces.enumerated() {
-            print("  Face \(index + 1): confidence=\(String(format: "%.2f", face.confidence)), area=\(String(format: "%.4f", face.boundingBox.width * face.boundingBox.height))")
-        }
-        
-        print("✅ Face detection completed successfully")
+
     }
     
     // ⭐️ 완전히 새로운 얼굴 크롭 시스템
     private func cropAllDetectedFaces(from originalImage: UIImage) {
-        print("✂️ Starting advanced face cropping for \(detectedFaces.count) faces")
         
         // 이미지를 정규화된 방향으로 변환
         let normalizedImage = normalizeImageOrientation(originalImage)
@@ -286,13 +263,8 @@ class FaceDetectionController: ObservableObject {
         for (index, face) in detectedFaces.enumerated() {
             if let croppedImage = advancedFaceCrop(from: normalizedImage, face: face) {
                 detectedFaces[index].croppedImage = croppedImage
-                print("✅ Face \(index + 1) cropped successfully: \(croppedImage.size)")
-            } else {
-                print("❌ Failed to crop face \(index + 1)")
             }
         }
-        
-        print("🎉 Advanced face cropping completed! Ready for roulette!")
     }
     
     // 이미지 방향을 정규화 (항상 .up 상태로 만들기)
@@ -315,26 +287,19 @@ class FaceDetectionController: ObservableObject {
         image.draw(in: CGRect(origin: .zero, size: normalizedSize))
         
         if let normalizedImage = UIGraphicsGetImageFromCurrentImageContext() {
-            print("📐 Image orientation normalized: \(image.imageOrientation.rawValue) → \(normalizedImage.imageOrientation.rawValue)")
             return normalizedImage
         }
-        
-        print("⚠️ Failed to normalize image orientation, using original")
         return image
     }
     
     // 고급 얼굴 크롭 함수
     private func advancedFaceCrop(from image: UIImage, face: DetectedFace) -> UIImage? {
         guard let cgImage = image.cgImage else {
-            print("❌ Cannot get CGImage from UIImage")
             return nil
         }
         
         let imageWidth = CGFloat(cgImage.width)
         let imageHeight = CGFloat(cgImage.height)
-        
-        print("🔍 Image dimensions: \(imageWidth) x \(imageHeight)")
-        print("🔍 Vision bounding box: \(face.boundingBox)")
         
         // Vision 좌표계를 CGImage 좌표계로 변환
         // Vision: 좌하단 원점 (0,0), Y축 위쪽이 +
@@ -348,7 +313,7 @@ class FaceDetectionController: ObservableObject {
             height: visionBox.height * imageHeight
         )
         
-        print("🔍 Converted CGImage box: \(cgBox)")
+
         
         // 얼굴 영역을 20% 확장 (안전하고 자연스러운 크롭)
         let expandRatio: CGFloat = 0.2
@@ -362,19 +327,17 @@ class FaceDetectionController: ObservableObject {
             height: min(imageHeight - max(0, cgBox.minY - expandY), cgBox.height + expandY * 2)
         )
         
-        print("🔍 Expanded box: \(expandedBox)")
+
         
         // 경계 검사
         guard expandedBox.width > 0 && expandedBox.height > 0 &&
               expandedBox.minX >= 0 && expandedBox.minY >= 0 &&
               expandedBox.maxX <= imageWidth && expandedBox.maxY <= imageHeight else {
-            print("❌ Invalid crop box dimensions or out of bounds")
             return nil
         }
         
         // 이미지 크롭
         guard let croppedCGImage = cgImage.cropping(to: expandedBox) else {
-            print("❌ Failed to crop CGImage")
             return nil
         }
         
@@ -395,12 +358,11 @@ class FaceDetectionController: ObservableObject {
             croppedImage.draw(in: CGRect(origin: .zero, size: newSize))
             
             if let scaledImage = UIGraphicsGetImageFromCurrentImageContext() {
-                print("🔍 Face image scaled up to: \(scaledImage.size)")
                 return scaledImage
             }
         }
         
-        print("🔍 Final cropped face size: \(croppedImage.size)")
+
         return croppedImage
     }
     
@@ -420,15 +382,11 @@ class FaceDetectionController: ObservableObject {
         editableFaces = detectedFaces.map { face in
             EditableFace(from: face, imageSize: imageSize)
         }
-        
-        print("📝 Converted \(detectedFaces.count) detected faces to editable faces")
-        print("📝 Image size: \(imageSize)")
     }
     
     /// 새로운 얼굴 박스 추가 (향상된 버전)
     func addNewFace() {
         guard currentImageSize != .zero else {
-            print("⚠️ Cannot add face: image size not set")
             return
         }
         
@@ -453,12 +411,6 @@ class FaceDetectionController: ObservableObject {
         newFace.croppedImage = cropFaceFromEditableBox(newFace)
         
         editableFaces.append(newFace)
-        
-        print("➕ Added new face box:")
-        print("  • Position: \(suggestedPosition)")
-        print("  • Size: \(smartSize)")
-        print("  • Total faces: \(editableFaces.count)")
-        print("  • Cropped image: \(newFace.croppedImage != nil ? "✅" : "❌")")
         
         // 시각적 피드백을 위해 잠시 하이라이트
         if let newIndex = editableFaces.firstIndex(where: { $0.id == newFace.id }) {
@@ -498,14 +450,11 @@ class FaceDetectionController: ObservableObject {
     /// 얼굴 박스 삭제
     func removeFace(withId id: UUID) {
         guard editableFaces.count > 1 else {
-            print("⚠️ Cannot remove face: minimum 1 face required")
             return
         }
         
         if let index = editableFaces.firstIndex(where: { $0.id == id }) {
-            let removedFace = editableFaces.remove(at: index)
-            print("❌ Removed face: userAdded=\(removedFace.isUserAdded)")
-            print("📊 Total faces: \(editableFaces.count)")
+            editableFaces.remove(at: index)
         }
     }
     
@@ -527,14 +476,7 @@ class FaceDetectionController: ObservableObject {
             // 🆕 사용자 추가 박스가 이동했으면 재크롭
             if editableFaces[index].isUserAdded {
                 editableFaces[index].croppedImage = cropFaceFromEditableBox(editableFaces[index])
-                print("🔄 Re-cropped moved user box: \(editableFaces[index].croppedImage != nil ? "✅" : "❌")")
             }
-            
-            let finalBox = editableFaces[index].boundingBox
-            print("📏 Finalized face position:")
-            print("  • Box: \(finalBox)")
-            print("  • Image bounds: \(currentImageSize)")
-            print("  • Is within bounds: \(isWithinBounds(finalBox))")
         }
     }
     
@@ -565,7 +507,6 @@ class FaceDetectionController: ObservableObject {
                 detectedFace.croppedImage = croppedImage
             } else if editableFace.isUserAdded {
                 detectedFace.croppedImage = cropFaceFromEditableBox(editableFace)
-                print("🔧 Emergency crop for user box: \(detectedFace.croppedImage != nil ? "✅" : "❌")")
             }
             
             return detectedFace
@@ -577,23 +518,16 @@ class FaceDetectionController: ObservableObject {
     /// EditableFace 박스 영역을 원본 이미지에서 크롭
     private func cropFaceFromEditableBox(_ editableFace: EditableFace) -> UIImage? {
         guard let originalImage = originalImage else {
-            print("❌ No original image available for cropping")
             return nil
         }
         
         guard let cgImage = originalImage.cgImage else {
-            print("❌ Cannot get CGImage from original image")
             return nil
         }
         
         let imageWidth = CGFloat(cgImage.width)
         let imageHeight = CGFloat(cgImage.height)
         let boxInPixels = editableFace.boundingBox
-        
-        print("✂️ Cropping user box:")
-        print("  • Original image: \(imageWidth) x \(imageHeight)")
-        print("  • Display size: \(currentImageSize)")
-        print("  • Box in display: \(boxInPixels)")
         
         // 디스플레이 좌표를 실제 이미지 좌표로 변환
         let scaleX = imageWidth / currentImageSize.width
@@ -606,7 +540,7 @@ class FaceDetectionController: ObservableObject {
             height: boxInPixels.height * scaleY
         )
         
-        print("  • Crop box in image: \(cropBox)")
+
         
         // 경계 검사
         let safeCropBox = CGRect(
@@ -617,18 +551,15 @@ class FaceDetectionController: ObservableObject {
         )
         
         guard safeCropBox.width > 0 && safeCropBox.height > 0 else {
-            print("❌ Invalid crop box dimensions")
             return nil
         }
         
         // 이미지 크롭
         guard let croppedCGImage = cgImage.cropping(to: safeCropBox) else {
-            print("❌ Failed to crop CGImage")
             return nil
         }
         
         let croppedImage = UIImage(cgImage: croppedCGImage, scale: 1.0, orientation: .up)
-        print("  • Cropped size: \(croppedImage.size)")
         
         return croppedImage
     }
