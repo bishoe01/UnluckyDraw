@@ -14,7 +14,8 @@ struct PhotoDrawView: View {
     @StateObject private var faceDetectionController = FaceDetectionController()
     @StateObject private var rouletteController = RouletteController()
     
-    let initialSourceType: UIImagePickerController.SourceType // 새로운 파라미터
+    let initialSourceType: UIImagePickerController.SourceType
+    let selectedFilter: FilterEffect
     
     @State private var currentStep: PhotoDrawStep = .instruction // 기본값 변경
     @State private var showingResult = false
@@ -155,7 +156,8 @@ struct PhotoDrawView: View {
                             ResultView(
                                 image: image,
                                 winner: winner,
-                                totalFaces: faceDetectionController.detectedFaces.count
+                                totalFaces: faceDetectionController.detectedFaces.count,
+                                selectedFilter: selectedFilter
                             ) {
                                 resetAndStart()
                             } onClose: {
@@ -414,5 +416,5 @@ struct PermissionRequestView: View {
 }
 
 #Preview {
-    PhotoDrawView(initialSourceType: .camera)
+    PhotoDrawView(initialSourceType: .camera, selectedFilter: .death)
 }

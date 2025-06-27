@@ -16,10 +16,11 @@ class ImageSaveManager: ObservableObject {
     
     // MARK: - Main Save Function
     
-    /// 원본 이미지에 당첨자 얼굴 프레임을 그려서 저장
+    /// 원본 이미지에 당첨자 얼굴 효과를 적용해서 저장
     func saveImageWithWinnerFrame(
         originalImage: UIImage,
         winner: DetectedFace,
+        filter: FilterEffect,
         completion: @escaping (Result<Void, ImageSaveError>) -> Void
     ) {
         // 1. 권한 확인
@@ -33,9 +34,10 @@ class ImageSaveManager: ObservableObject {
             
             // 2. 이미지 편집
             DispatchQueue.global(qos: .userInitiated).async {
-                guard let editedImage = self?.drawWinnerFrameOnImage(
+                guard let editedImage = self?.applyFilterToImage(
                     originalImage: originalImage,
-                    winner: winner
+                    winner: winner,
+                    filter: filter
                 ) else {
                     DispatchQueue.main.async {
                         completion(.failure(.imageProcessingFailed))
@@ -54,6 +56,31 @@ class ImageSaveManager: ObservableObject {
     }
     
     // MARK: - Image Editing
+    
+    private func applyFilterToImage(originalImage: UIImage, winner: DetectedFace, filter: FilterEffect) -> UIImage? {
+        let imageSize = originalImage.size
+        
+        // Vision 좌표를 UIKit 좌표로 변환
+        let visionRect = winner.boundingBox
+        let faceRect = CGRect(
+            x: visionRect.origin.x * imageSize.width,
+            y: (1.0 - visionRect.origin.y - visionRect.height) * imageSize.height,
+            width: visionRect.width * imageSize.width,
+            height: visionRect.height * imageSize.height
+        )
+        
+        // 필터 효과 적용 (텍스트 오버레이 없이 순수 시각 효과만)
+        guard let filteredImage = FaceFilterManager.shared.applyFilter(
+            filter,
+            to: originalImage,
+            faceRect: faceRect
+        ) else {
+            // 필터 적용 실패시 원본 이미지 반환
+            return originalImage
+        }
+        
+        return filteredImage
+    }
     
     private func drawWinnerFrameOnImage(originalImage: UIImage, winner: DetectedFace) -> UIImage? {
         let imageSize = originalImage.size
@@ -160,6 +187,67 @@ class ImageSaveManager: ObservableObject {
             context.addLine(to: corner.2)
             context.strokePath()
         }
+    }
+    
+    private func addTextOverlay(to image: UIImage, winner: DetectedFace, filter: FilterEffect) -> UIImage? {
+        let imageSize = image.size
+        let scale = image.scale
+        
+        UIGraphicsBeginImageContextWithOptions(imageSize, false, scale)
+        defer { UIGraphicsEndImageContext() }
+        
+        guard let context = UIGraphicsGetCurrentContext() else { return nil }
+        
+        // 1. 필터 적용된 이미지 그리기
+        image.draw(in: CGRect(origin: .zero, size: imageSize))
+        
+        // 2. Vision 좌표를 UIKit 좌표로 변환
+        let visionRect = winner.boundingBox
+        let faceRect = CGRect(
+            x: visionRect.origin.x * imageSize.width,
+            y: (1.0 - visionRect.origin.y - visionRect.height) * imageSize.height,
+            width: visionRect.width * imageSize.width,
+            height: visionRect.height * imageSize.height
+        )
+        
+        // 3. 필터별 텍스트 추가
+        let text = filter.displayName
+        let fontSize = min(imageSize.width, imageSize.height) * 0.04
+        let textAttributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: fontSize, weight: .black),
+            .foregroundColor: UIColor.white,
+            .strokeColor: filter.color,
+            .strokeWidth: -3.0
+        ]
+        
+        let textSize = text.size(withAttributes: textAttributes)
+        
+        // 텍스트 위치 조정
+        let textY: CGFloat
+        if faceRect.maxY + textSize.height + 20 < imageSize.height {
+            textY = faceRect.maxY + 10
+        } else {
+            textY = max(0, faceRect.minY - textSize.height - 10)
+        }
+        
+        let textRect = CGRect(
+            x: faceRect.midX - textSize.width / 2,
+            y: textY,
+            width: textSize.width,
+            height: textSize.height
+        )
+        
+        // 텍스트 배경
+        context.setFillColor(filter.color.withAlphaComponent(0.8).cgColor)
+        let backgroundRect = textRect.insetBy(dx: -10, dy: -5)
+        let backgroundPath = UIBezierPath(roundedRect: backgroundRect, cornerRadius: 8)
+        context.addPath(backgroundPath.cgPath)
+        context.fillPath()
+        
+        // 텍스트 그리기
+        text.draw(in: textRect, withAttributes: textAttributes)
+        
+        return UIGraphicsGetImageFromCurrentImageContext()
     }
     
     // MARK: - Photo Library Operations

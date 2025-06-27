@@ -11,6 +11,7 @@ struct ResultView: View {
     let image: UIImage
     let winner: DetectedFace
     let totalFaces: Int
+    let selectedFilter: FilterEffect
     let onPlayAgain: () -> Void
     let onClose: () -> Void
     
@@ -184,6 +185,7 @@ struct ResultView: View {
         .frame(maxHeight: 400)
     }
     
+    
     private var actionButtonsSection: some View {
         VStack(spacing: 16) {
             // Save Photo Button - Primary action
@@ -347,7 +349,8 @@ struct ResultView: View {
         
         ImageSaveManager.shared.saveImageWithWinnerFrame(
             originalImage: image,
-            winner: winner
+            winner: winner,
+            filter: selectedFilter
         ) { result in
             isSaving = false
             saveResult = result
@@ -449,6 +452,7 @@ struct EnhancedWinnerDisplay: View {
     }
 }
 
+
 // MARK: - Custom Button Style
 
 struct ScaleButtonStyle: ButtonStyle {
@@ -464,6 +468,7 @@ struct ScaleButtonStyle: ButtonStyle {
         image: UIImage(systemName: "person.fill") ?? UIImage(),
         winner: DetectedFace(boundingBox: CGRect(x: 0.2, y: 0.3, width: 0.3, height: 0.4), confidence: 0.95),
         totalFaces: 5,
+        selectedFilter: .death,
         onPlayAgain: {},
         onClose: {}
     )

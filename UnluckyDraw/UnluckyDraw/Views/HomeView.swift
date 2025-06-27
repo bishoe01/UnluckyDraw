@@ -9,9 +9,11 @@ import SwiftUI
 
 struct HomeView: View {
     @State private var selectedMode: DrawMode?
+    @State private var selectedFilter: FilterEffect = .death
     @State private var showingPhotoDrawCamera = false
     @State private var showingPhotoDrawGallery = false
     @State private var showingModeSelection = false
+    @State private var showingFilterSelection = false
     @State private var pulseAnimation = false
     @State private var backgroundGradientOffset: CGFloat = 0
     @State private var logoRotation: Double = 0
@@ -36,10 +38,15 @@ struct HomeView: View {
         .animation(.none)
         .transition(.identity)
         .fullScreenCover(isPresented: $showingPhotoDrawCamera) {
-            PhotoDrawView(initialSourceType: .camera)
+            PhotoDrawView(initialSourceType: .camera, selectedFilter: selectedFilter)
         }
         .fullScreenCover(isPresented: $showingPhotoDrawGallery) {
-            PhotoDrawView(initialSourceType: .photoLibrary)
+            PhotoDrawView(initialSourceType: .photoLibrary, selectedFilter: selectedFilter)
+        }
+        .sheet(isPresented: $showingFilterSelection) {
+            FilterSelectionView(selectedFilter: $selectedFilter) {
+                showingFilterSelection = false
+            }
         }
     }
     
@@ -147,6 +154,20 @@ struct HomeView: View {
     
     private var actionCardsSection: some View {
         VStack(spacing: 20) {
+            // Game Mode Selection
+            EnhancedActionCard(
+                title: selectedFilter.displayName,
+                subtitle: "Choose your game mode",
+                description: selectedFilter.description,
+                icon: selectedFilter.icon,
+                gradientColors: [Color(selectedFilter.color).opacity(0.8), Color(selectedFilter.color).opacity(0.6)],
+                glowColor: Color(selectedFilter.color),
+                action: {
+                    HapticManager.impact(.medium)
+                    showingFilterSelection = true
+                }
+            )
+            
             // Camera card with dramatic styling
             EnhancedActionCard(
                 title: "CAPTURE FATE",
